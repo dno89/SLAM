@@ -23,17 +23,17 @@ namespace SLAM {
          * @p vehicle_state_size the size of the vehicle state
          * @p initial_state_estimation the initial state
          * @p initial_covariance_estimation the initial covariance matrix of the state
-         * @p vehicle_model the vehicle model according to 
+         * @p vehicle_model the vehicle model according to @class VehicleModel
          */
-        void Setup(int vehicle_state_size, const VectorType& initial_state_estimation, const MatrixType& initial_covariance_estimation, const VehicleModel& vehicle_model) {
+        void Setup(const VectorType& initial_state_estimation, const MatrixType& initial_covariance_estimation, const VehicleModel& vehicle_model) {
             //set the size
-            m_XvSize = vehicle_state_size;
+            m_XvSize = initial_state_estimation.rows();
             
             //set the remainig parameters with some debug assertions
             assert(initial_state_estimation.rows() == m_XvSize);
             m_Xv = initial_state_estimation;
             
-            assert(initial_covariance_estimation.cols() == initial_covariance_estimation.rows() == m_XvSize);
+            assert(initial_covariance_estimation.cols() == m_XvSize && initial_covariance_estimation.rows() == m_XvSize);
             m_Pvv = initial_covariance_estimation;
             
             assert(vehicle_model);
@@ -55,6 +55,7 @@ namespace SLAM {
             
             //predict the vehicle state
             m_Xv = m_vModel.F(m_Xv, u);
+            assert(m_Xv.rows() == m_XvSize);
             //Xv is now Xv-(k)
             
             //landmarks are supposed to be static: no update needed
@@ -62,12 +63,62 @@ namespace SLAM {
             //update the covariance matrices
             //Pvv
             m_Pvv = df_dXv * m_Pvv * df_dXv.transpose() + Q;
-            assert(m_Pvv.cols() == m_Pvv.rows() == m_XvSize);
+            assert(m_Pvv.cols() == m_XvSize && m_Pvv.rows() == m_XvSize);
             
             //Pvm
-            int eta = m_Pvm.cols();
-            m_Pvm = df_dXv * m_Pvm;
-            assert(m_Pvm.rows() == m_XvSize && m_Pvm.cols() == eta);
+            if(m_Pvm.rows() > 0) {
+                int eta = m_Pvm.cols();
+                m_Pvm = df_dXv * m_Pvm;
+                assert(m_Pvm.rows() == m_XvSize && m_Pvm.cols() == eta);
+            }
+        }
+        
+        /**
+         * @brief add a new landmark to the tracked list
+         * @p observation the observation associated with the new feature
+         * @p observation_model the observation model of the feature according to @class LandmarkModel
+         * @p initialization_model the initialization model accordin to @class LandmarkInitializationModel
+         * @p R the covariance matrix for the observation noise (in this case restricted to the new landmark)
+         * @return the index at which the landmark has been inserted
+         */
+        int AddNewLandmark(const VectorType& observation, const LandmarkModel& observation_model, const LandmarkInitializationModel& initialization_model, const MatrixType R) {
+            //
+            check();
+            //check the model
+            assert(observation_model);
+            assert(initialization_model);
+            
+            //get the initial landmark state estimation
+            VectorType Xm = initialization_model.G(m_Xv, observation);
+            //the new landmark
+            Landmark new_lm(Xm.rows(), Xm, observation_model);
+            ///TODO add here if the incremental count (colum in Pvm/Pmm matrix) is needed
+            //add it to the list
+            m_landmarks.push_back(new_lm);
+            
+            //the new landmark state size
+            const int Nj = Xm.rows();
+            
+            //add Nj columns and rows to Pmm
+            MatrixType A, B;
+            //A is the leftmost column and bottom row, excluded the Nj x Nj square diagonal piece (bottom right corner)
+            A.noalias() = m_Pvm.transpose() * initialization_model.dG_dXv(m_Xv, observation).transpose();
+            //B is the square Nj x Nj bottom right block
+            B.noalias() = initialization_model.dG_dXv(m_Xv, observation) * m_Pvv * initialization_model.dG_dXv(m_Xv, observation).transpose() + initialization_model.dG_dZ(m_Xv, observation) * R * initialization_model.dG_dZ(m_Xv, observation).transpose();
+            
+            //add the columns
+            m_Pmm.conservativeResize(Eigen::NoChange, m_Pmm.cols()+Nj);
+            m_Pmm.rightCols(Nj) = A;
+            //add the rows
+            m_Pmm.conservativeResize(m_Pmm.rows()+Nj, Eigen::NoChange);
+            m_Pmm.bottomLeftCorner(/*A.cols()*/Nj, A.rows()) = A.transpose();
+            m_Pmm.bottomRightCorner(Nj, Nj) = B;
+            
+            //add Nj columns to Pvm
+            m_Pvm.conservativeResize(Eigen::NoChange_t(), m_Pvm.cols() + Nj);
+            m_Pvm.rightCols(Nj).noalias() = m_Pvv.transpose() * initialization_model.dG_dXv(m_Xv, observation).transpose();
+            
+            return m_landmarks.size()-1;
         }
         
         
@@ -83,6 +134,9 @@ namespace SLAM {
         VectorType m_Xv;
         //the vehicle model with Jacobian
         VehicleModel m_vModel;
+        
+        //STATE OBSERVATION
+//         std::vector<>
         
         //LANDMARKS
         std::vector<Landmark> m_landmarks;

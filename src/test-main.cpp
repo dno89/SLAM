@@ -10,9 +10,16 @@ using namespace Eigen;
 using namespace SLAM;
 
 VectorType f(const VectorType& Xv, const VectorType& U)  {
+    cerr << "f" << endl;
+    return Xv;
 }
 
 MatrixType df_dxv(const VectorType& Xv, const VectorType& U)  {
+    cerr << "df_dxv" << endl;
+    
+    MatrixType m(3, 3);
+    m << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+    return m;
 }
 
 int main(int argc, char **argv) {
@@ -20,13 +27,18 @@ int main(int argc, char **argv) {
     
     SLAMEngine e;
     
-    VectorType v;
+    VectorType v(3);
+    VectorType u(3);
     v << 0, 1, 2;
+    u << 1, 2, 3;
     
     MatrixType p(3, 3);
     p << 0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1;
     
-    e.Setup(3, v, p, VehicleModel(f, df_dxv));
+    e.Setup(v, p, VehicleModel(f, df_dxv));
+    
+    e.Predict(u, p);
+    
     return 0;
 }
 

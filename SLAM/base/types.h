@@ -65,14 +65,14 @@ namespace SLAM {
         /**
          * @note Wrapper for F and dF_dXv function
          */
-        VectorType F(const VectorType& Xv, const VectorType& U) {
+        VectorType F(const VectorType& Xv, const VectorType& U) const {
              if(!(m_F && m_dF_dXv)) {
                 throw std::runtime_error("VehicleModel::F ERROR: structure not initialized\n");
             }
             
             return (*m_F)(Xv, U);
         }
-        VectorType dF_dXv(const VectorType& Xv, const VectorType& U) {
+        MatrixType dF_dXv(const VectorType& Xv, const VectorType& U) const {
              if(!(m_F && m_dF_dXv)) {
                 throw std::runtime_error("VehicleModel::F ERROR: structure not initialized\n");
             }
@@ -135,21 +135,21 @@ namespace SLAM {
         /**
          * @note Wrapper for H, dH_dXv and dH_dXm functions
          */
-        VectorType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) {
+        VectorType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
              if(!(m_H && m_dH_dXm && m_dH_dXv)) {
                 throw std::runtime_error("LandmarkModel::H ERROR: functions not initialized\n");
             }
             
             return (*m_H)(Xv, Xm);
         }
-        MatrixType dH_dXv(const VehicleStateType& Xv, const LandmarkStateType& Xm) {
+        MatrixType dH_dXv(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
              if(!(m_H && m_dH_dXm && m_dH_dXv)) {
                 throw std::runtime_error("LandmarkModel::dH_dXv ERROR: functions not initialized\n");
             }
             
             return (*m_dH_dXv)(Xv, Xm);
         }
-        MatrixType dH_dXm(const VehicleStateType& Xv, const LandmarkStateType& Xm) {
+        MatrixType dH_dXm(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
              if(!(m_H && m_dH_dXm && m_dH_dXv)) {
                 throw std::runtime_error("LandmarkModel::dH_dXm ERROR: functions not initialized\n");
             }
@@ -164,6 +164,89 @@ namespace SLAM {
         ObservationJacobian m_dH_dXm = nullptr;
     };
     
+    /**
+     * @class LandmarkInitializationModel a class that incapsulate the vehicle model and its Jacobian
+     */
+    class LandmarkInitializationModel {
+    public:
+        ////typedef
+        typedef VectorType VehicleStateType;
+        typedef VectorType ObservationType;
+        typedef VectorType LandmarkStateType;
+        /**
+         * @note the first argument is the vehicle state, the second is the control input
+         */
+        typedef LandmarkStateType (*InitializationFunction)(const VehicleStateType&, const ObservationType&);
+        typedef MatrixType (*InitializationJacobian)(const VehicleStateType&, const ObservationType&);
+        
+        ////constructor
+        /**
+         * @brief proper initialization for the structure
+         * @p g the landmark state initialization function: a function that return the estimated feature state given the observation and vehicle state
+         * @p dg_dxv the Jacobian of @p g computed wrt the vehicle state Xv
+         * @p dg_dz the Jacobian of @p g computed wrt the observation Z
+         */
+        LandmarkInitializationModel(InitializationFunction g, InitializationJacobian dg_dxv, InitializationJacobian dg_dz) : m_G(g), m_dG_dXv(dg_dxv), m_dG_dZ(dg_dz) {
+            if(!(m_G && m_dG_dZ && m_dG_dXv)) {
+                throw std::runtime_error("LandmarkInitializationModel::LandmarkInitializationModel(InitializationFunction,InitializationJacobian,InitializationJacobian) ERROR: g, dg_dxv and dg_dz must be non-NULL!\n");
+            }
+        }
+        /**
+         * @brief empty constructor
+         */
+        LandmarkInitializationModel() {}
+        /**
+         * @brief default copy constructor
+         */
+        LandmarkInitializationModel(const LandmarkInitializationModel&) = default;
+        /**
+         * @brief default copy operator
+         */
+        LandmarkInitializationModel& operator=(const LandmarkInitializationModel&) = default;
+        
+        /**
+         * @brief check whether the object has been properly initialized
+         */
+        operator bool() const {
+            return m_G && m_dG_dZ && m_dG_dXv;
+        }
+        
+        /**
+         * @note Wrapper for G, dG_dXv and dG_dZ functions
+         */
+        LandmarkStateType G(const VehicleStateType& Xv, const ObservationType& Z) const {
+             if(!(m_G && m_dG_dZ && m_dG_dXv)) {
+                throw std::runtime_error("LandmarkInitializationModel::H ERROR: functions not initialized\n");
+            }
+            
+            return (*m_G)(Xv, Z);
+        }
+        MatrixType dG_dXv(const VehicleStateType& Xv, const ObservationType& Z) const {
+             if(!(m_G && m_dG_dZ && m_dG_dXv)) {
+                throw std::runtime_error("LandmarkInitializationModel::dH_dXv ERROR: functions not initialized\n");
+            }
+            
+            return (*m_dG_dXv)(Xv, Z);
+        }
+        MatrixType dG_dZ(const VehicleStateType& Xv, const ObservationType& Z) const {
+             if(!(m_G && m_dG_dZ && m_dG_dXv)) {
+                throw std::runtime_error("LandmarkInitializationModel::dH_dZ ERROR: functions not initialized\n");
+            }
+            
+            return (*m_dG_dZ)(Xv, Z);
+        }
+        
+    private:
+        ////data
+        InitializationFunction m_G = nullptr;
+        InitializationJacobian m_dG_dXv = nullptr;
+        InitializationJacobian m_dG_dZ = nullptr;
+    };
+    
+    /**
+     * @struct Landmark
+     * @brief keep together various information related to a single landmark
+     */
     struct Landmark {
         Landmark() {}
         Landmark(int size, const VectorType& state, const LandmarkModel& model) :
