@@ -9,6 +9,8 @@
 //SLAM
 #include "../base/core.h"
 #include "../base/types.h"
+//Eigen
+#include <Eigen/Sparse>
 
 namespace SLAM {
     class SLAMEngine {
@@ -77,7 +79,7 @@ namespace SLAM {
          * @brief perform update/correction based on the current perception
          * @p perceptions a vector of associated perception: the current observation
          */
-        void Update(std::vector<AssociatedPerception>& perceptions) {
+        void Update(std::vector<AssociatedPerception>& perceptions, MatrixType R) {
             const int eta_p = preprocess_perceptions(perceptions);
             const int p = perceptions.size();
             const int eta = m_Pvm.cols();
@@ -85,15 +87,59 @@ namespace SLAM {
             //the innovation vector
             VectorType ni(eta_p);
             for(int ii = 0; ii < p; ++ii) {
-                ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Observation.rows()) = perceptions[ii].Observation - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
+                ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
             }
             
             //the jacobian matrix
-            MatrixXd dH_dX(eta_p, eta + m_XvSize);
-            //fill the matrix per row
-//             for(int ii = 0; ii < )
+            Eigen::SparseMatrix<ScalarType> dH_dX(eta_p, eta + m_XvSize);
+            //fill the matrix per block-row
+            for(int kk = 0; kk < p; ++kk) {
+                //the jacobian wrt the vehicle state: a (Mjkk)x(Nv) matrix
+                MatrixType dH_dXv = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXv(m_Xv);
+                //the jacobian wrt the landmark state: a (Mjkk)x(Njkk) matrix
+                MatrixType dH_dXm = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXm(m_Xv);
+                
+                //set it on the sparse Jacobian
+                //these are the spanned rows
+                for(int ii = perceptions[kk].AccumulatedSize; ii < perceptions[kk].AccumulatedSize+perceptions[kk].Z.rows(); ++ii) {
+                    //set the Xv dependent term
+                    //these are the spanned columns
+                    for(int jj = 0; jj < m_XvSize; ++jj) {
+                        dH_dX.insert(ii, jj) = dH_dXv(ii - perceptions[kk].AccumulatedSize, jj);
+                    }
+                    
+                    //set the Xm dependent term
+                    //the starting column in dH_dX
+                    const int start_col = m_landmarks[perceptions[kk].AssociatedIndex].AccumulatedSize+m_XvSize;
+                    //the size of the landmark status
+                    const int N = m_landmarks[perceptions[kk].AssociatedIndex].Xm.rows();
+                    for(int jj = start_col; jj < start_col + N; ++jj) {
+                        dH_dX.insert(ii, jj) = dH_dXm(ii - perceptions[kk].AccumulatedSize, jj - start_col);
+                    }
+                }
+            }
             
+            //the total P matrix
+            MatrixType P(m_XvSize+eta, m_XvSize+eta);
+            P << m_Pvv, m_Pvm, m_Pvm.transpose(), m_Pmm;
             
+            //the S matrix
+            MatrixType S(eta_p, eta_p);
+            S.noalias() = dH_dX * P * dH_dX.transpose() + R;
+            
+            //the Kalman gain
+            MatrixType W(eta+m_XvSize, eta_p);
+            W = P * dH_dX.transpose() * S.inverse();
+            
+            //update the state estimation
+            m_Xv = m_Xv + W * ni;
+            
+            //update the total covariance matrix
+            P = P - W * S * W.transpose();
+            //propagates the update to the 3 components
+            m_Pvv = P.topLeftCorner(m_XvSize, m_XvSize);
+            m_Pvm = P.topRightCorner(m_XvSize, eta);
+            m_Pmm = P.bottomRightCorner(eta, eta);
         }
         
         /**
@@ -114,8 +160,11 @@ namespace SLAM {
             //get the initial landmark state estimation
             VectorType Xm = initialization_model.G(m_Xv, observation);
             //the new landmark
-            Landmark new_lm(Xm.rows(), Xm, observation_model);
-            ///TODO add here if the incremental count (colum in Pvm/Pmm matrix) is needed
+            Landmark new_lm(Xm, observation_model);
+            //set the accumulated size
+            if(m_landmarks.size()) {
+                new_lm.AccumulatedSize = m_landmarks.back().AccumulatedSize + m_landmarks.back().Xm.rows();
+            }
             //add it to the list
             m_landmarks.push_back(new_lm);
             
@@ -159,6 +208,7 @@ namespace SLAM {
         VehicleModel m_vModel;
         
         //STATE OBSERVATION
+        ///TODO
 //         std::vector<>
         
         //LANDMARKS
@@ -185,7 +235,7 @@ namespace SLAM {
             int accum = 0;
             for(int ii = 0; ii < p.size(); ++ii) {
                 p[ii].AccumulatedSize = accum;
-                accum += p[ii].Observation.rows();
+                accum += p[ii].Z.rows();
             }
             
             return accum;

@@ -182,6 +182,9 @@ int speed_test(int argc, char **argv) {
     
     std::cout << n_tests << " moltiplications with sparse matrices took " << duration_cast<milliseconds>(dt).count() << "ms." << endl;
     
+    time_t t = high_resolution_clock::to_time_t(high_resolution_clock::now());
+    std::cout << "Test done at: " << ctime(&t) << endl;
+    
     return 0;
 }
 

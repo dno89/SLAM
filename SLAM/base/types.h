@@ -272,11 +272,11 @@ namespace SLAM {
      */
     struct Landmark {
 //         Landmark() {}
-        Landmark(int size, const VectorType& state, const LandmarkModel& model) :
-            XmSize(size), Xm(state), Model(model, Xm) {}
+        Landmark(const VectorType& state, const LandmarkModel& model) :
+            AccumulatedSize(0), Xm(state), Model(model, Xm) {}
         
         //the landmark state size
-        int XmSize;
+        int AccumulatedSize;
         //the landmark state
         VectorType Xm;
         //the landmark observation model
@@ -298,9 +298,9 @@ namespace SLAM {
     struct AssociatedPerception {
         AssociatedPerception() {}
         AssociatedPerception(const VectorType& observation, int associated_index) :
-            Observation(observation), AssociatedIndex(associated_index) {}
+            Z(observation), AssociatedIndex(associated_index) {}
         
-        VectorType Observation;
+        VectorType Z;
         int AssociatedIndex;
         int AccumulatedSize;
     };
