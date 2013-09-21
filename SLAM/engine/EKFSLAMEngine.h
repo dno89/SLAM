@@ -67,10 +67,33 @@ namespace SLAM {
             
             //Pvm
             if(m_Pvm.rows() > 0) {
-                int eta = m_Pvm.cols();
+                const int eta = m_Pvm.cols();
                 m_Pvm = df_dXv * m_Pvm;
                 assert(m_Pvm.rows() == m_XvSize && m_Pvm.cols() == eta);
             }
+        }
+        
+        /**
+         * @brief perform update/correction based on the current perception
+         * @p perceptions a vector of associated perception: the current observation
+         */
+        void Update(std::vector<AssociatedPerception>& perceptions) {
+            const int eta_p = preprocess_perceptions(perceptions);
+            const int p = perceptions.size();
+            const int eta = m_Pvm.cols();
+            
+            //the innovation vector
+            VectorType ni(eta_p);
+            for(int ii = 0; ii < p; ++ii) {
+                ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Observation.rows()) = perceptions[ii].Observation - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
+            }
+            
+            //the jacobian matrix
+            MatrixXd dH_dX(eta_p, eta + m_XvSize);
+            //fill the matrix per row
+//             for(int ii = 0; ii < )
+            
+            
         }
         
         /**
@@ -152,6 +175,20 @@ namespace SLAM {
         ////SUPPORT FUNCTIONS
         void check() {
             if(!m_init) throw std::runtime_error("SLAMEngine ERROR: a function has been called with the object not propertly initialize (call Setup before using the object)\n");
+        }
+        /**
+         * @brief set the acculumated size for @p p
+         * @p p the vector of associated perceptions
+         * @return the total size of the observation vector
+         */
+        int preprocess_perceptions(std::vector<AssociatedPerception>& p) {
+            int accum = 0;
+            for(int ii = 0; ii < p.size(); ++ii) {
+                p[ii].AccumulatedSize = accum;
+                accum += p[ii].Observation.rows();
+            }
+            
+            return accum;
         }
     };
 }

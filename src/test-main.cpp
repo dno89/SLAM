@@ -2,12 +2,31 @@
 //std
 #include <iostream>
 #include <stdexcept>
+#include <map>
+#include <chrono>
+#include <cstdlib>
 //SLAM
 #include "../SLAM/SLAM.h"
+//Eigen
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
 
 using namespace std;
+using namespace chrono;
 using namespace Eigen;
 using namespace SLAM;
+
+/******************************************************************************
+ *          GLOBAL VARS
+ * ***************************************************************************/
+
+////typedef
+typedef int (*TestFunction)(int, char**);
+
+////global var
+std::map<std::string, TestFunction> tests;
+
+
 
 /******************************************************************************
  *          TEST
@@ -83,7 +102,7 @@ Matrix3d typed_df_dxv(const Vector3d& Xv, const Vector2d& U)  {
     return m;
 }
 
-int main(int argc, char **argv) {
+int base_test(int argc, char **argv) {
     std::cout << "Hello, world!\nThis is a big SLAM test\n" << std::endl;
     
     SLAMEngine e;
@@ -110,4 +129,96 @@ int main(int argc, char **argv) {
     delete w;
     
     return 0;
+}
+
+int speed_test(int argc, char **argv) {
+    std::cout << "Eigen speed test: dense vs sparse matrices" << std::endl;
+    
+    srand(time(NULL));
+    
+    const int sigma = 30;   //Nv+eta
+    MatrixXd P = MatrixXd::Random(sigma, sigma);
+    
+    const int p = 11;   //number of observation
+    MatrixXd dense_dH = MatrixXd::Zero(p, sigma);
+    SparseMatrix<double> sparse_dH(p, sigma);
+    
+    for(int ii = 0; ii < p; ++ii) {
+        double dxv = (double(rand())/RAND_MAX)*50.0 - 25.0;
+        
+        //first element
+        dense_dH(ii, 0) = dxv;
+        sparse_dH.insert(ii, 0) = dxv;
+        
+        int column = rand()%(sigma-1)+1;
+        double dxm = (double(rand())/RAND_MAX)*50.0 - 25.0;
+        
+        //other element
+        dense_dH(ii, column) = dxm;
+        sparse_dH.insert(ii, column) = dxm;
+    }
+    
+    const int n_tests = 10000;
+    
+    std::cout << "Starting with DENSE test" << endl;
+    
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    for(int ii = 0; ii < n_tests; ++ii) {
+        MatrixXd res;
+        res.noalias() = dense_dH * P * dense_dH.transpose();
+    }
+    high_resolution_clock::duration dt = high_resolution_clock::now() - t1;
+    
+    std::cout << n_tests << " moltiplications with dense matrices took " << duration_cast<milliseconds>(dt).count() << "ms." << endl;
+    
+    std::cout << "\nStarting with SPARSE test" << endl;
+    
+    t1 = high_resolution_clock::now();
+    for(int ii = 0; ii < n_tests; ++ii) {
+        MatrixXd res;
+        res.noalias() = sparse_dH * P * sparse_dH.transpose();
+    }
+    dt = high_resolution_clock::now() - t1;
+    
+    std::cout << n_tests << " moltiplications with sparse matrices took " << duration_cast<milliseconds>(dt).count() << "ms." << endl;
+    
+    return 0;
+}
+
+////utility functions
+void register_function(std::string name, TestFunction fn_ptr) {
+    tests[name] = fn_ptr;
+}
+void RegisterFunctions() {
+    register_function("base_test",      base_test);
+    register_function("speed_test",     speed_test);
+}
+
+
+//// MAIN
+int main(int argc, char** argv) {
+    ////using
+    using namespace std;
+    
+    RegisterFunctions();
+    
+    if(argc < 2) {
+error:  cerr << "Usage: " << argv[0] << " test {args, ...}\nAvailable test: ";
+        for(auto it = tests.begin(); it != tests.end(); ++it) {
+            cerr << "\n\t" << it->first;
+        }
+        cerr << endl;
+        return 1;
+    }
+    
+    string test = argv[1];
+    TestFunction fn;
+    
+    if(tests.count(test) == 0) {
+        goto error;
+    } else {
+        fn = tests[test];
+    }
+    
+    return (*fn)(argc-1, argv+1);
 }

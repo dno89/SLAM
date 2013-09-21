@@ -243,21 +243,66 @@ namespace SLAM {
         InitializationJacobian m_dG_dZ = nullptr;
     };
     
+    class RestrainedLandmarkModel {
+    private:
+        const LandmarkModel& m_lm;
+        const VectorType& m_ls;
+    public:
+        RestrainedLandmarkModel(const LandmarkModel& landmark_model, const VectorType& landmark_state) :
+            m_lm(landmark_model), m_ls(landmark_state) {}
+            
+        ////typedef
+        typedef VectorType VehicleStateType;
+        
+        ////INTERFACE
+        VectorType H(const VehicleStateType& Xv) const {
+             return m_lm.H(Xv, m_ls);
+        }
+        MatrixType dH_dXv(const VehicleStateType& Xv) const {
+            return m_lm.dH_dXv(Xv, m_ls);
+        }
+        MatrixType dH_dXm(const VehicleStateType& Xv) const {
+             return m_lm.dH_dXm(Xv, m_ls);
+        }
+    };
+    
     /**
      * @struct Landmark
      * @brief keep together various information related to a single landmark
      */
     struct Landmark {
-        Landmark() {}
+//         Landmark() {}
         Landmark(int size, const VectorType& state, const LandmarkModel& model) :
-            XmSize(size), Xm(state), Model(model) {}
+            XmSize(size), Xm(state), Model(model, Xm) {}
         
         //the landmark state size
         int XmSize;
         //the landmark state
         VectorType Xm;
         //the landmark observation model
-        LandmarkModel Model;
+        RestrainedLandmarkModel Model;
+    };
+    
+    /**
+     * @struct AssociatedPerception
+     * @brief an observation vector with an associated index
+     * @var Observation
+     * @brief The vector with the actual observation
+     * 
+     * @var AssociatedIndex
+     * @brief The index of the tracked feature associated with this observation
+     * 
+     * @var AccumulatedSize
+     * @brief Support variable used by the update function, DO NOT SET
+     */
+    struct AssociatedPerception {
+        AssociatedPerception() {}
+        AssociatedPerception(const VectorType& observation, int associated_index) :
+            Observation(observation), AssociatedIndex(associated_index) {}
+        
+        VectorType Observation;
+        int AssociatedIndex;
+        int AccumulatedSize;
     };
 }
 
