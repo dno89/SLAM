@@ -21,6 +21,48 @@ namespace SLAM {
      * @class VehicleModel a class that incapsulate the vehicle model and its Jacobian
      */
     class VehicleModel {
+    private: 
+        ////subtypes
+        class Wrapper {
+        public:
+            virtual VectorType F(const VectorType& Xv, const VectorType& U) = 0;
+            virtual MatrixType dF_dXv(const VectorType& Xv, const VectorType& U) = 0;
+        };
+        template<int N, int M>
+        class WrapperImpl : public Wrapper {
+        public:
+            static const int XvSize = N;
+            static const int USize = M;
+            
+            ////typedef
+            //vectors and matrices
+            typedef Eigen::Matrix<ScalarType, XvSize, 1> StateVectorType;
+            typedef Eigen::Matrix<ScalarType, USize, 1> InputVectorType;
+            typedef Eigen::Matrix<ScalarType, XvSize, XvSize> JacobianMatrixType;
+            //function pointers
+            typedef StateVectorType (*FType)(const StateVectorType&, const InputVectorType&);
+            typedef JacobianMatrixType (*dF_dXvType)(const StateVectorType&, const InputVectorType&);
+            
+            ////constructor
+            WrapperImpl(FType f, dF_dXvType df_dxv) : m_F(f), m_dF_dXv(df_dxv)
+                {}
+                
+            ////functions
+            VectorType F ( const VectorType& Xv, const VectorType& U ) {
+                StateVectorType xv(Xv);
+                InputVectorType u(U);
+                
+                return (*m_F)(xv, u);
+            }
+            MatrixType dF_dXv ( const VectorType& Xv, const VectorType& U ) {
+            }
+            
+        private:
+            FType const m_F;
+            dF_dXvType const m_dF_dXv;
+        };
+        
+        ///TODO INTEGRATE
     public:
         ////typedef
         typedef VectorType StateType;
