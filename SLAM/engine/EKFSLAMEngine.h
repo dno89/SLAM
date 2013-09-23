@@ -9,8 +9,13 @@
 //SLAM
 #include "../base/core.h"
 #include "../base/types.h"
+#include "../base/DMDebug.h"
 //Eigen
 #include <Eigen/Sparse>
+
+////DEBUG
+CREATE_PRIVATE_DEBUG_LOG("/tmp/SlamEngine.log",)
+// INIT()
 
 namespace SLAM {
     class SLAMEngine {

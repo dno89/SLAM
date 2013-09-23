@@ -5,6 +5,7 @@
 #include <map>
 #include <chrono>
 #include <cstdlib>
+#include <random>
 //SLAM
 #include "../SLAM/SLAM.h"
 //Eigen
@@ -185,7 +186,84 @@ int speed_test(int argc, char **argv) {
     time_t t = high_resolution_clock::to_time_t(high_resolution_clock::now());
     std::cout << "Test done at: " << ctime(&t) << endl;
     
+//     std::cout << "Test done at: " << ctime(&high_resolution_clock::to_time_t(high_resolution_clock::now())) << endl;
+    
     return 0;
+}
+
+namespace engine_test {
+    /******************************************************************************
+    *           MODEL       
+    * ***************************************************************************/
+    //discretization
+    static const double time_increment = 200e-3; //200ms
+    //noise generator
+    static default_random_engine eng;
+    static const double mu = 0.0;
+    static const double state_sigma = 0.05;
+    static const double observation_sigma = 0.03;
+    static normal_distribution<double> state_noise(mu, state_sigma);
+    static normal_distribution<double> observation_noise(mu, observation_sigma);
+    
+    ////vehicle model
+    //Xv = (x, y, theta)
+    //U = (v, omega)
+    VectorType F(const VectorType& Xv, const VectorType& U) {
+        Vector3d res(Xv);
+        
+        res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0);
+        res[1] += U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0);
+        res[2] += U[1]*time_increment;
+        
+        return res;
+    }
+    VectorType noisy_F(const VectorType& Xv, const VectorType& U) {
+        Vector3d res(Xv);
+        
+        res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0) + state_noise(eng);
+        res[1] += U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0) + state_noise(eng);
+        res[2] += U[1]*time_increment + state_noise(eng);
+        
+        return res;
+    }
+    MatrixType dF_dXv(const VectorType& Xv, const VectorType& U) {
+        MatrixType J(3, 3);
+        J <<    1, 0, (-U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0)),
+                0, 1, (U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0)),
+                0, 0, 1;
+                
+        return J;
+    }
+    
+    ////landmark model
+    //Xm = (mx, my)
+    //Z = (rho, theta)
+    VectorType H(VectorType Xv, VectorType Xm) {
+        VectorType res(2);
+        res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]);
+        
+        return res;
+    }
+    MatrixType dH_dXv(VectorType Xv, VectorType Xm) {
+        MatrixType J(2, 3);
+        double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
+        J <<    (Xv[0] - Xm[0])/rho,            (Xv[1] - Xm[1])/rho,        0,
+                -(Xv[1] - Xm[1])/(rho*rho),     (Xv[0] - Xm[0])/(rho*rho),  -1;
+        
+        return J;
+    }
+    MatrixType dH_dXm(VectorType Xv, VectorType Xm) {
+        MatrixType J(2, 2);
+        double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
+        J <<    (-Xv[0] + Xm[0])/rho,          (-Xv[1] + Xm[1])/rho,
+                (Xv[1] - Xm[1])/(rho*rho),     -(Xv[0] - Xm[0])/(rho*rho);
+        
+        return J;
+    }
+    
+    int slam_engine_test(int argc, char **argv) {
+        return 0;
+    }
 }
 
 ////utility functions

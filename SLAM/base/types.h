@@ -18,7 +18,7 @@ namespace SLAM {
     
     ////support classes
     /**
-     * @class VehicleModel a class that incapsulate the vehicle model and its Jacobian
+     * @brief a class that incapsulate the vehicle model and its Jacobian
      */
     class VehicleModel {
     public:
