@@ -200,9 +200,15 @@ namespace engine_test {
     //noise generator
     static default_random_engine eng(time(NULL));
     static const double mu = 0.0;
-    static const double state_pos_sigma = 0.05;
-    static const double state_ang_sigma = 0.01;
-    static const double observation_sigma = 0.02;
+    static const double state_pos_sigma = 0.01;
+    static const double state_ang_sigma = 0.005;
+    static const double observation_sigma = 0.01;
+//     static const double state_pos_sigma = 0.05;
+//     static const double state_ang_sigma = 0.01;
+//     static const double observation_sigma = 0.02;
+//     static const double state_pos_sigma = 0.00;
+//     static const double state_ang_sigma = 0.00;
+//     static const double observation_sigma = 0.00;
     static normal_distribution<double> state_pos_noise(mu, state_pos_sigma);
     static normal_distribution<double> state_ang_noise(mu, state_ang_sigma);
     static normal_distribution<double> observation_noise(mu, observation_sigma);
@@ -240,6 +246,9 @@ namespace engine_test {
     MatrixType dH_dXv(const VectorType& Xv, const VectorType& Xm) {
         MatrixType J(2, 3);
         double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
+        if(rho < 1e-3) {
+            cerr << "******* RHO TOO SMALL" << endl;
+        }
         J <<    (Xv[0] - Xm[0])/rho,            (Xv[1] - Xm[1])/rho,        0,
                 -(Xv[1] - Xm[1])/(rho*rho),     (Xv[0] - Xm[0])/(rho*rho),  -1;
         
@@ -248,6 +257,9 @@ namespace engine_test {
     MatrixType dH_dXm(const VectorType& Xv, const VectorType& Xm) {
         MatrixType J(2, 2);
         double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
+        if(rho < 1e-3) {
+            cerr << "******* RHO TOO SMALL" << endl;
+        }
         J <<    (-Xv[0] + Xm[0])/rho,          (-Xv[1] + Xm[1])/rho,
                 (Xv[1] - Xm[1])/(rho*rho),     -(Xv[0] - Xm[0])/(rho*rho);
         
@@ -302,11 +314,15 @@ namespace engine_test {
         return res;
     }
     VectorType Control_input_generator(int tick) {
-        const double V_period = 100.0;
-        const double Omega_period = 300.0;
+        const double V_period = 300.0;
+        const double Omega_period = 500.0;
         
         VectorType res(2);
-        res << pow(sin(tick/V_period * 2 * M_PI), 2), sin(tick/Omega_period * 2 * M_PI);
+        res << pow(sin(tick/V_period * 2 * M_PI), 2), 0.2*sin(tick/Omega_period * 2 * M_PI);
+//         res << 0.1, 0.005 + 0.1*cos(tick/Omega_period * 2 * M_PI);
+//         res << 0.5 + tick/10000.0, 0.2 + 0.1*sin(tick/Omega_period * 2 * M_PI);
+//         res << tick*0.001, 0.2;
+//         res << 0.5, 0.4;
         return res;
     }
     
@@ -316,11 +332,14 @@ namespace engine_test {
         VectorType Xv(3);
         Xv << 0.0, 0.0, 0.0;
         //real landmark position
-        VectorType Xm(2);
-        Xm << 5.0, 5.0;
+        VectorType Xm1(2), Xm2(2);
+        Xm1 << 5.0, -5.0;
+        Xm2 << 15.0, 0.0;
         //the measurement noise
         MatrixType R(2, 2);
         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
+        MatrixType R_tot(4, 4);
+        R_tot = MatrixXd::Identity(4, 4)*observation_sigma*observation_sigma;
         MatrixType Q(3, 3);
         Q << state_pos_sigma*state_pos_sigma, 0, 0,
             0, state_pos_sigma*state_pos_sigma, 0,
@@ -332,10 +351,15 @@ namespace engine_test {
         //setup the state model
         se.Setup(Xv + Vector3d(state_pos_noise(eng), state_pos_noise(eng), state_ang_noise(eng)), Q, VM);
         //add the new landmark
-        int lindex = se.AddNewLandmark(Observation_generator(Xv, Xm), LM, LIM, R);
+        int lindex1 = se.AddNewLandmark(Observation_generator(Xv, Xm1), LM, LIM, R);
+        int lindex2 = se.AddNewLandmark(Observation_generator(Xv, Xm2), LM, LIM, R);
         cout << "Initial estimated Xv: " << se.GetStateEstimation().transpose() << endl;
-        cout << "Initial estimated Xm: " << se.GetLandmarkEstimation(lindex).transpose() << endl;
+        cout << "Initial estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
+        cout << "Initial estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
         
+        ofstream out_Xv("/tmp/Xv.dat");
+        ofstream out_Xm1("/tmp/Xm1.dat");
+        ofstream out_Xm2("/tmp/Xm2.dat");
         
         const int TOTAL_TICK = 100000;
         for(int ii = 0; ii < TOTAL_TICK; ++ii) {
@@ -343,8 +367,10 @@ namespace engine_test {
             //initial condition
             cout << "Real Xv: " << Xv.transpose() << endl;
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
-            cout << "Real Xm: " << Xm.transpose() << endl;
-            cout << "Estimated Xm: " << se.GetLandmarkEstimation(lindex).transpose() << endl;
+            cout << "Real Xm1: " << Xm1.transpose() << endl;
+            cout << "Estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
+            cout << "Real Xm2: " << Xm2.transpose() << endl;
+            cout << "Estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
             //the control input
             VectorType U(Control_input_generator(ii));
             cout << "--< prediction >--\nU: " << U.transpose() << endl;
@@ -355,21 +381,29 @@ namespace engine_test {
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
             
             cout << "--< update >--\n";
-            VectorType Z(Observation_generator(Xv, Xm));
-            cout << "Ideal Z: " << H(Xv, Xm).transpose() << endl;
-            cout << "Noisy Z: " << Z.transpose() << endl;
+            VectorType Z1(Observation_generator(Xv, Xm1)), Z2(Observation_generator(Xv, Xm2));
+            cout << "Ideal Z1: " << H(Xv, Xm1).transpose() << endl;
+            cout << "Noisy Z1: " << Z1.transpose() << endl;
+            cout << "Ideal Z2: " << H(Xv, Xm2).transpose() << endl;
+            cout << "Noisy Z2: " << Z2.transpose() << endl;
             
-            AssociatedPerception ap(Z, lindex);
             std::vector<AssociatedPerception> percs;
-            percs.push_back(ap);
+            percs.push_back(AssociatedPerception(Z1, lindex1));
+            percs.push_back(AssociatedPerception(Z2, lindex2));
             
-            se.Update(percs, R);
+            se.Update(percs, R_tot);
             cout << "Real Xv: " << Xv.transpose() << endl;
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
-            cout << "Real Xm: " << Xm.transpose() << endl;
-            cout << "Estimated Xm: " << se.GetLandmarkEstimation(lindex).transpose() << endl;
+            cout << "Real Xm1: " << Xm1.transpose() << endl;
+            cout << "Estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
+            cout << "Real Xm2: " << Xm2.transpose() << endl;
+            cout << "Estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
             
-            cout << "--<< SUMMARY: Xv e: " << (Xv - se.GetStateEstimation()).norm() << ", Xm e: " << (Xm - se.GetLandmarkEstimation(lindex)).norm() << endl << endl;
+            out_Xv << Xv.transpose() << " " << se.GetStateEstimation().transpose() << endl;
+            out_Xm1 << Xm1.transpose() << " " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
+            out_Xm2 << Xm2.transpose() << " " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
+            
+            cout << "--<< SUMMARY: Xv e: " << (Xv - se.GetStateEstimation()).norm() << ", Xm1 e: " << (Xm1 - se.GetLandmarkEstimation(lindex1)).norm() << ", Xm2 e: " << (Xm2 - se.GetLandmarkEstimation(lindex2)).norm()<< endl << endl;
         }
         
         return 0;
@@ -414,3 +448,5 @@ error:  cerr << "Usage: " << argv[0] << " test {args, ...}\nAvailable test: ";
     
     return (*fn)(argc-1, argv+1);
 }
+
+//plot "./Xv.dat" u 1:2 w l t "real", "./Xv.dat" u 4:5 w l t "tracked", "./Xm1.dat" u 3:4 w p t "estimated L1", "./Xm2.dat" u 3:4 w p t "estimated L2", "./Xm1.dat" u 1:2 w p t "L1", "./Xm2.dat" u 1:2 w p t "L2"
