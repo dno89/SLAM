@@ -136,8 +136,14 @@ namespace SLAM {
             MatrixType W(eta+m_XvSize, eta_p);
             W = P * dH_dX.transpose() * S.inverse();
             
-            //update the state estimation
-            m_Xv = m_Xv + W * ni;
+            //the complete state update
+            VectorType dX = W * ni;
+            //update the vehicle state
+            m_Xv += dX.head(m_XvSize);
+            //update the landmark state
+            for(int ii = 0; ii < m_landmarks.size(); ++ii) {
+                m_landmarks[ii].Xm += dX.segment(m_landmarks[ii].AccumulatedSize+m_XvSize, m_landmarks[ii].Xm.rows());
+            }
             
             //update the total covariance matrix
             P = P - W * S * W.transpose();
@@ -176,24 +182,38 @@ namespace SLAM {
             //the new landmark state size
             const int Nj = Xm.rows();
             
-            //add Nj columns and rows to Pmm
-            MatrixType A, B;
-            //A is the leftmost column and bottom row, excluded the Nj x Nj square diagonal piece (bottom right corner)
-            A.noalias() = m_Pvm.transpose() * initialization_model.dG_dXv(m_Xv, observation).transpose();
-            //B is the square Nj x Nj bottom right block
-            B.noalias() = initialization_model.dG_dXv(m_Xv, observation) * m_Pvv * initialization_model.dG_dXv(m_Xv, observation).transpose() + initialization_model.dG_dZ(m_Xv, observation) * R * initialization_model.dG_dZ(m_Xv, observation).transpose();
-            
-            //add the columns
-            m_Pmm.conservativeResize(Eigen::NoChange, m_Pmm.cols()+Nj);
-            m_Pmm.rightCols(Nj) = A;
-            //add the rows
-            m_Pmm.conservativeResize(m_Pmm.rows()+Nj, Eigen::NoChange);
-            m_Pmm.bottomLeftCorner(/*A.cols()*/Nj, A.rows()) = A.transpose();
-            m_Pmm.bottomRightCorner(Nj, Nj) = B;
-            
-            //add Nj columns to Pvm
-            m_Pvm.conservativeResize(Eigen::NoChange_t(), m_Pvm.cols() + Nj);
-            m_Pvm.rightCols(Nj).noalias() = m_Pvv.transpose() * initialization_model.dG_dXv(m_Xv, observation).transpose();
+            if(m_Pmm.cols() != 0) {
+                //this is not the first landmark
+                
+                //add Nj columns and rows to Pmm
+                MatrixType A, B;
+                //A is the leftmost column and bottom row, excluded the Nj x Nj square diagonal piece (bottom right corner)
+                A.noalias() = m_Pvm.transpose() * initialization_model.dG_dXv(m_Xv, observation).transpose();
+                //B is the square Nj x Nj bottom right block
+                B.noalias() = initialization_model.dG_dXv(m_Xv, observation) * m_Pvv * initialization_model.dG_dXv(m_Xv, observation).transpose() + initialization_model.dG_dZ(m_Xv, observation) * R * initialization_model.dG_dZ(m_Xv, observation).transpose();
+                
+                //add the columns
+                m_Pmm.conservativeResize(Eigen::NoChange, m_Pmm.cols()+Nj);
+                m_Pmm.rightCols(Nj) = A;
+                //add the rows
+                m_Pmm.conservativeResize(m_Pmm.rows()+Nj, Eigen::NoChange);
+                m_Pmm.bottomLeftCorner(/*A.cols()*/Nj, A.rows()) = A.transpose();
+                m_Pmm.bottomRightCorner(Nj, Nj) = B;
+                
+                //add Nj columns to Pvm
+                m_Pvm.conservativeResize(Eigen::NoChange_t(), m_Pvm.cols() + Nj);
+                m_Pvm.rightCols(Nj).noalias() = m_Pvv.transpose() * initialization_model.dG_dXv(m_Xv, observation).transpose();
+            } else {
+                //this is the first landmark
+                
+                //create Pmm
+                m_Pmm = initialization_model.dG_dXv(m_Xv, observation) * m_Pvv * initialization_model.dG_dXv(m_Xv, observation).transpose() + initialization_model.dG_dZ(m_Xv, observation) * R * initialization_model.dG_dZ(m_Xv, observation).transpose();
+                
+                //create Pvm
+                //add Nj columns to Pvm
+                m_Pvm.conservativeResize(m_XvSize, Nj);
+                m_Pvm.rightCols(Nj).noalias() = m_Pvv.transpose() * initialization_model.dG_dXv(m_Xv, observation).transpose();
+            }
             
             return m_landmarks.size()-1;
         }

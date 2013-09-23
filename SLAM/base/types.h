@@ -243,13 +243,20 @@ namespace SLAM {
         InitializationJacobian m_dG_dZ = nullptr;
     };
     
+    /**
+     * Just a convenient class for force the evaluation of the model on the relative landmark state.
+     */
     class RestrainedLandmarkModel {
+//     public:
+//         friend class Landmark;
     private:
-        const LandmarkModel& m_lm;
+        const LandmarkModel m_lm;
         const VectorType& m_ls;
     public:
         RestrainedLandmarkModel(const LandmarkModel& landmark_model, const VectorType& landmark_state) :
             m_lm(landmark_model), m_ls(landmark_state) {}
+        RestrainedLandmarkModel(const RestrainedLandmarkModel&) = delete;
+        RestrainedLandmarkModel& operator=(const RestrainedLandmarkModel&) = delete;
             
         ////typedef
         typedef VectorType VehicleStateType;
@@ -264,6 +271,8 @@ namespace SLAM {
         MatrixType dH_dXm(const VehicleStateType& Xv) const {
              return m_lm.dH_dXm(Xv, m_ls);
         }
+        
+        LandmarkModel GetModel() const { return m_lm; }
     };
     
     /**
@@ -274,6 +283,11 @@ namespace SLAM {
 //         Landmark() {}
         Landmark(const VectorType& state, const LandmarkModel& model) :
             AccumulatedSize(0), Xm(state), Model(model, Xm) {}
+            
+        Landmark(const Landmark& l) : AccumulatedSize(l.AccumulatedSize), Xm(l.Xm), Model(l.Model.GetModel(), Xm)
+            {}
+        
+        Landmark& operator=(const Landmark& l) = delete;
         
         //the landmark state size
         int AccumulatedSize;

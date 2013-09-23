@@ -200,9 +200,11 @@ namespace engine_test {
     //noise generator
     static default_random_engine eng(time(NULL));
     static const double mu = 0.0;
-    static const double state_sigma = 0.05;
-    static const double observation_sigma = 0.03;
-    static normal_distribution<double> state_noise(mu, state_sigma);
+    static const double state_pos_sigma = 0.05;
+    static const double state_ang_sigma = 0.01;
+    static const double observation_sigma = 0.02;
+    static normal_distribution<double> state_pos_noise(mu, state_pos_sigma);
+    static normal_distribution<double> state_ang_noise(mu, state_ang_sigma);
     static normal_distribution<double> observation_noise(mu, observation_sigma);
     
     ////vehicle model
@@ -255,7 +257,7 @@ namespace engine_test {
     ////initialization model
     VectorType G(const VectorType& Xv, const VectorType& Z) {
         VectorType Xm(2);
-        Xm << Xv[0] + Z[0]*cos(Xm[2]+Z[1]), Xv[1] + Z[0]*sin(Xm[2]+Z[1]);
+        Xm << Xv[0] + Z[0]*cos(Xv[2]+Z[1]), Xv[1] + Z[0]*sin(Xv[2]+Z[1]);
         
         return Xm;
     }
@@ -287,9 +289,9 @@ namespace engine_test {
     VectorType noisy_F(const VectorType& Xv, const VectorType& U) {
         Vector3d res(Xv);
         
-        res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0) + state_noise(eng);
-        res[1] += U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0) + state_noise(eng);
-        res[2] += U[1]*time_increment + state_noise(eng);
+        res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0) + state_pos_noise(eng);
+        res[1] += U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0) + state_pos_noise(eng);
+        res[2] += U[1]*time_increment + state_ang_noise(eng);
         
         return res;
     }
@@ -311,8 +313,8 @@ namespace engine_test {
     
     int slam_engine_test(int argc, char **argv) {
         //real vehicle position
-        VectorType Xv(2);
-        Xv << 0.0, 0.0;
+        VectorType Xv(3);
+        Xv << 0.0, 0.0, 0.0;
         //real landmark position
         VectorType Xm(2);
         Xm << 5.0, 5.0;
@@ -320,12 +322,15 @@ namespace engine_test {
         MatrixType R(2, 2);
         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
         MatrixType Q(3, 3);
-        Q = MatrixXd::Identity(3, 3)*state_sigma*state_sigma;
+        Q << state_pos_sigma*state_pos_sigma, 0, 0,
+            0, state_pos_sigma*state_pos_sigma, 0,
+            0, 0, state_ang_sigma*state_ang_sigma;
+//         Q = MatrixXd::Identity(3, 3)*state_sigma*state_sigma;
         
         //the SLAM engine
         SLAMEngine se;
         //setup the state model
-        se.Setup(Xv + Vector3d(state_noise(eng), state_noise(eng), state_noise(eng)), Q, VM);
+        se.Setup(Xv + Vector3d(state_pos_noise(eng), state_pos_noise(eng), state_ang_noise(eng)), Q, VM);
         //add the new landmark
         int lindex = se.AddNewLandmark(Observation_generator(Xv, Xm), LM, LIM, R);
         cout << "Initial estimated Xv: " << se.GetStateEstimation().transpose() << endl;
@@ -351,8 +356,8 @@ namespace engine_test {
             
             cout << "--< update >--\n";
             VectorType Z(Observation_generator(Xv, Xm));
-            cout << "Ideal Z: " << H(Xv, Xm).transpose();
-            cout << "Noisy Z: " << Z.transpose();
+            cout << "Ideal Z: " << H(Xv, Xm).transpose() << endl;
+            cout << "Noisy Z: " << Z.transpose() << endl;
             
             AssociatedPerception ap(Z, lindex);
             std::vector<AssociatedPerception> percs;
@@ -363,6 +368,8 @@ namespace engine_test {
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
             cout << "Real Xm: " << Xm.transpose() << endl;
             cout << "Estimated Xm: " << se.GetLandmarkEstimation(lindex).transpose() << endl;
+            
+            cout << "--<< SUMMARY: Xv e: " << (Xv - se.GetStateEstimation()).norm() << ", Xm e: " << (Xm - se.GetLandmarkEstimation(lindex)).norm() << endl << endl;
         }
         
         return 0;
