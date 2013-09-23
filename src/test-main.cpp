@@ -198,7 +198,7 @@ namespace engine_test {
     //discretization
     static const double time_increment = 200e-3; //200ms
     //noise generator
-    static default_random_engine eng;
+    static default_random_engine eng(time(NULL));
     static const double mu = 0.0;
     static const double state_sigma = 0.05;
     static const double observation_sigma = 0.03;
@@ -217,15 +217,6 @@ namespace engine_test {
         
         return res;
     }
-    VectorType noisy_F(const VectorType& Xv, const VectorType& U) {
-        Vector3d res(Xv);
-        
-        res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0) + state_noise(eng);
-        res[1] += U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0) + state_noise(eng);
-        res[2] += U[1]*time_increment + state_noise(eng);
-        
-        return res;
-    }
     MatrixType dF_dXv(const VectorType& Xv, const VectorType& U) {
         MatrixType J(3, 3);
         J <<    1, 0, (-U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0)),
@@ -237,14 +228,14 @@ namespace engine_test {
     
     ////landmark model
     //Xm = (mx, my)
-    //Z = (rho, theta)
-    VectorType H(VectorType Xv, VectorType Xm) {
+    //Z = (rho, phi)
+    VectorType H(const VectorType& Xv, const VectorType& Xm) {
         VectorType res(2);
         res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]);
         
         return res;
     }
-    MatrixType dH_dXv(VectorType Xv, VectorType Xm) {
+    MatrixType dH_dXv(const VectorType& Xv, const VectorType& Xm) {
         MatrixType J(2, 3);
         double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
         J <<    (Xv[0] - Xm[0])/rho,            (Xv[1] - Xm[1])/rho,        0,
@@ -252,7 +243,7 @@ namespace engine_test {
         
         return J;
     }
-    MatrixType dH_dXm(VectorType Xv, VectorType Xm) {
+    MatrixType dH_dXm(const VectorType& Xv, const VectorType& Xm) {
         MatrixType J(2, 2);
         double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
         J <<    (-Xv[0] + Xm[0])/rho,          (-Xv[1] + Xm[1])/rho,
@@ -261,7 +252,119 @@ namespace engine_test {
         return J;
     }
     
+    ////initialization model
+    VectorType G(const VectorType& Xv, const VectorType& Z) {
+        VectorType Xm(2);
+        Xm << Xv[0] + Z[0]*cos(Xm[2]+Z[1]), Xv[1] + Z[0]*sin(Xm[2]+Z[1]);
+        
+        return Xm;
+    }
+    MatrixType dG_dXv(const VectorType& Xv, const VectorType& Z) {
+        MatrixType J(2, 3);
+        J <<    1,  0,  -Z[0]*sin(Xv[2]+Z[1]),
+                0,  1,  Z[0]*cos(Xv[2]+Z[1]);
+        
+        return J;
+    }
+    MatrixType dG_dZ(const VectorType& Xv, const VectorType& Z) {
+        MatrixType J(2, 2);
+        J <<    cos(Xv[2]+Z[1]),  -Z[0]*sin(Xv[2]+Z[1]),
+                sin(Xv[2]+Z[1]),  Z[0]*cos(Xv[2]+Z[1]);
+        
+        return J;
+    }
+    /******************************************************************************
+    *           MODEL   END
+    * ***************************************************************************/
+    ////model declaration
+    VehicleModel VM(F, dF_dXv);
+    LandmarkModel LM(H, dH_dXv, dH_dXm);
+    LandmarkInitializationModel LIM(G, dG_dXv, dG_dZ);
+    
+    /******************************************************************************
+    *           SIMULATOR
+    * ***************************************************************************/
+    VectorType noisy_F(const VectorType& Xv, const VectorType& U) {
+        Vector3d res(Xv);
+        
+        res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0) + state_noise(eng);
+        res[1] += U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0) + state_noise(eng);
+        res[2] += U[1]*time_increment + state_noise(eng);
+        
+        return res;
+    }
+    VectorType Observation_generator(const VectorType& Xv, const VectorType& Xm) {
+        VectorType res(2);
+        res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])) + observation_noise(eng), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]) + observation_noise(eng);
+        
+        return res;
+    }
+    VectorType Control_input_generator(int tick) {
+        const double V_period = 100.0;
+        const double Omega_period = 300.0;
+        
+        VectorType res(2);
+        res << pow(sin(tick/V_period * 2 * M_PI), 2), sin(tick/Omega_period * 2 * M_PI);
+        return res;
+    }
+    
+    
     int slam_engine_test(int argc, char **argv) {
+        //real vehicle position
+        VectorType Xv(2);
+        Xv << 0.0, 0.0;
+        //real landmark position
+        VectorType Xm(2);
+        Xm << 5.0, 5.0;
+        //the measurement noise
+        MatrixType R(2, 2);
+        R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
+        MatrixType Q(3, 3);
+        Q = MatrixXd::Identity(3, 3)*state_sigma*state_sigma;
+        
+        //the SLAM engine
+        SLAMEngine se;
+        //setup the state model
+        se.Setup(Xv + Vector3d(state_noise(eng), state_noise(eng), state_noise(eng)), Q, VM);
+        //add the new landmark
+        int lindex = se.AddNewLandmark(Observation_generator(Xv, Xm), LM, LIM, R);
+        cout << "Initial estimated Xv: " << se.GetStateEstimation().transpose() << endl;
+        cout << "Initial estimated Xm: " << se.GetLandmarkEstimation(lindex).transpose() << endl;
+        
+        
+        const int TOTAL_TICK = 100000;
+        for(int ii = 0; ii < TOTAL_TICK; ++ii) {
+            cout << "--[[ ITERATION " << ii << " ]]--\n";
+            //initial condition
+            cout << "Real Xv: " << Xv.transpose() << endl;
+            cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
+            cout << "Real Xm: " << Xm.transpose() << endl;
+            cout << "Estimated Xm: " << se.GetLandmarkEstimation(lindex).transpose() << endl;
+            //the control input
+            VectorType U(Control_input_generator(ii));
+            cout << "--< prediction >--\nU: " << U.transpose() << endl;
+            //real state update
+            Xv = noisy_F(Xv, U);
+            se.Predict(U, Q);
+            cout << "Real Xv: " << Xv.transpose() << endl;
+            cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
+            
+            cout << "--< update >--\n";
+            VectorType Z(Observation_generator(Xv, Xm));
+            cout << "Ideal Z: " << H(Xv, Xm).transpose();
+            cout << "Noisy Z: " << Z.transpose();
+            
+            AssociatedPerception ap(Z, lindex);
+            std::vector<AssociatedPerception> percs;
+            percs.push_back(ap);
+            
+            se.Update(percs, R);
+            cout << "Real Xv: " << Xv.transpose() << endl;
+            cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
+            cout << "Real Xm: " << Xm.transpose() << endl;
+            cout << "Estimated Xm: " << se.GetLandmarkEstimation(lindex).transpose() << endl;
+        }
+        
         return 0;
     }
 }
@@ -273,6 +376,7 @@ void register_function(std::string name, TestFunction fn_ptr) {
 void RegisterFunctions() {
     register_function("base_test",      base_test);
     register_function("speed_test",     speed_test);
+    register_function("slam_test",      engine_test::slam_engine_test);
 }
 
 

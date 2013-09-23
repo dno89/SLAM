@@ -198,6 +198,23 @@ namespace SLAM {
             return m_landmarks.size()-1;
         }
         
+        /**
+         * @brief get the current state estimation
+         * @return the current state estimation
+         */
+        VectorType GetStateEstimation() const {
+            return m_Xv;
+        }
+        
+        /**
+         * @brief get the current state estimation for landmark @p i
+         * @p i the index of the landmark
+         * @return the current state estimation for landmark @p i
+         */
+        VectorType GetLandmarkEstimation(int i) {
+            return m_landmarks[i].Xm;
+        }
+        
         
     private:
         ////DATA
