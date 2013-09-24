@@ -390,10 +390,12 @@ namespace engine_test {
     VectorType Control_input_generator(int tick) {
         VectorType res(2);
         res << 4*pow(sin(tick/300.0 * 2 * M_PI), 2), 0.8*sin(tick/500.0 * 2 * M_PI);
+//         res << 4*pow(sin(tick/300.0 * 2 * M_PI), 2), -0.005 + 0.8*sin(tick/500.0 * 2 * M_PI);
 //         res << 4.0, 0.005 + 0.2*cos(tick/300.0* 2 * M_PI);
 //         res << tick*0.001, 0.2;
 //         cout << "arg: " << tick/100.0*2*M_PI;
 //         res << 1.0, 2*sin(tick/50.0*2*M_PI);
+//         res << 0.5 + sqrt(tick) / 100.0, 0.04;
         return res;
     }
     
@@ -410,11 +412,11 @@ namespace engine_test {
         ///SECTION: landmark initialization
         vector<VectorType> landmarks;
         map<int, int> associations;
-        const int LANDMARK_NUMBER = 100;
-        const double SENSOR_RANGE_MAX = 100.0;
-        default_random_engine lre(time(NULL));
-        uniform_real_distribution<ScalarType> un_x(-50.0, 300.0);
-        uniform_real_distribution<ScalarType> un_y(50.0, -300.0);
+        const int LANDMARK_NUMBER = 50;
+        const double SENSOR_RANGE_MAX = 50.0;
+        default_random_engine lre(1);
+        uniform_real_distribution<ScalarType> un_x(-50.0, 500.0);
+        uniform_real_distribution<ScalarType> un_y(-100.0, 50.0);
         
         for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
             VectorType Xm(2);
@@ -460,13 +462,17 @@ namespace engine_test {
         
         ///PLOTTING SCRIPT
         strstream script;
-        script << "#!/usr/bin/gnuplot -persistent\nplot '/tmp/Xv.dat' u 1:2 w l t 'real', '' u 4:5 w l t 'tracked', 'real_Xm.dat' u 1:2 t ''";
+        script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\nplot '/tmp/Xv.dat' u 1:2 w l t 'real', '' u 4:5 w l t 'tracked', '/tmp/real_Xm.dat' u 1:2 t ''";
         for(int ii = 1; ii < landmarks.size(); ++ii) {
             script << ", '' u " << 2*ii+1 << ":" << 2*ii+2 << " t ''";
         }
-        script << endl;
+        script << ", '/tmp/tracked_Xm.dat' u 1:2 t ''";
+        for(int ii = 1; ii < landmarks.size(); ++ii) {
+            script << ", '' u " << 2*ii+1 << ":" << 2*ii+2 << " t ''";
+        }
+        script << endl << '\0';
         ofstream out_script("/tmp/script.gnu");
-        out_script << script.str();
+        out_script << script.str() << flush;
         out_script.close();
         
         const int TOTAL_TICK = 100000;
@@ -529,6 +535,18 @@ namespace engine_test {
             out_Xv << Xv.transpose() << " " << se.GetStateEstimation().transpose() << endl;
 //             out_Xm1 << Xm1.transpose() << " " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
 //             out_Xm2 << Xm2.transpose() << " " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
+            
+            for(int ii = 0; ii < landmarks.size(); ++ii) {
+                if(associations.count(ii)) {
+                    //tracked
+                    VectorType Xm(se.GetLandmarkEstimation(associations[ii]));
+                    tracked_Xm << " " << Xm.transpose();
+                } else {
+                    //not tracked
+                    tracked_Xm << " ? ?";
+                }
+            }
+            tracked_Xm << endl;
             
             cout << "--<< SUMMARY: Xv e: " << (Xv - se.GetStateEstimation()).norm() << ", Xm1 e: " << /*(Xm1 - se.GetLandmarkEstimation(lindex1)).norm() << ", Xm2 e: " << (Xm2 - se.GetLandmarkEstimation(lindex2)).norm()<< */endl;
             
