@@ -213,7 +213,7 @@ namespace SLAM {
             //update the vehicle state
             DTRACE_L(m_Xv)
             m_Xv += dX.head(m_XvSize);
-            DTRACE_L(m_Xv)
+            DPRINT("after update:\n" << m_Xv)
             
             //update the landmark state
             for(int ii = 0; ii < m_landmarks.size(); ++ii) {

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <random>
+#include <strstream>
 //SLAM
 #include "../SLAM/SLAM.h"
 //Eigen
@@ -204,17 +205,21 @@ namespace engine_test {
     static default_random_engine eng(/*time(NULL)*/1);
     static const double mu = 0.0;
     
-    static const double state_pos_sigma = 0.01;
-    static const double state_ang_sigma = 0.005;
-    static const double observation_sigma = 0.01;
+//     static const double state_pos_sigma = 0.01;
+//     static const double state_ang_sigma = 0.005;
+//     static const double observation_sigma = 0.01;
     
 //     static const double state_pos_sigma = 0.001;
 //     static const double state_ang_sigma = 0.001;
 //     static const double observation_sigma = 0.01;
     
-//     static const double state_pos_sigma = 0.05;
-//     static const double state_ang_sigma = 0.01;
-//     static const double observation_sigma = 0.02;
+    static const double state_pos_sigma = 0.05;
+    static const double state_ang_sigma = 0.01;
+    static const double observation_sigma = 0.02;
+    
+//     static const double state_pos_sigma = 0.1;
+//     static const double state_ang_sigma = 0.05;
+//     static const double observation_sigma = 0.05;
     
 //     static const double state_pos_sigma = 0.00;
 //     static const double state_ang_sigma = 0.00;
@@ -228,7 +233,7 @@ namespace engine_test {
     //Xv = (x, y, theta)
     //U = (v, omega)
     VectorType F(const VectorType& Xv, const VectorType& U) {
-        cout << ">> F called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
+//         cout << ">> F called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
         
         Vector3d res(Xv);
         res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0);
@@ -241,7 +246,7 @@ namespace engine_test {
         return res;
     }
     MatrixType dF_dXv(const VectorType& Xv, const VectorType& U) {
-        cout << ">> dF_dXv called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
+//         cout << ">> dF_dXv called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
         
         MatrixType J(3, 3);
         J <<    1, 0, (-U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0)),
@@ -255,7 +260,7 @@ namespace engine_test {
     //Xm = (mx, my)
     //Z = (rho, phi)
     VectorType H(const VectorType& Xv, const VectorType& Xm) {
-        cout << ">> H called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
+//         cout << ">> H called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
         
         VectorType res(2);
         res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]) - Xv[2];
@@ -263,7 +268,7 @@ namespace engine_test {
         return res;
     }
     MatrixType dH_dXv(const VectorType& Xv, const VectorType& Xm) {
-        cout << ">> dH_dXv called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
+//         cout << ">> dH_dXv called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
         
         MatrixType J(2, 3);
         double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1]-Xm[1])*(Xv[1]-Xm[1]));
@@ -274,7 +279,7 @@ namespace engine_test {
         return J;
     }
     MatrixType dH_dXm(const VectorType& Xv, const VectorType& Xm) {
-        cout << ">> dH_dXm called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
+//         cout << ">> dH_dXm called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
         
         MatrixType J(2, 2);
         double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
@@ -289,7 +294,7 @@ namespace engine_test {
     
     ////initialization model
     VectorType G(const VectorType& Xv, const VectorType& Z) {
-        cout << ">> G called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
+//         cout << ">> G called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
         
         VectorType Xm(2);
         Xm << Xv[0] + Z[0]*cos(Xv[2]+Z[1]), Xv[1] + Z[0]*sin(Xv[2]+Z[1]);
@@ -297,7 +302,7 @@ namespace engine_test {
         return Xm;
     }
     MatrixType dG_dXv(const VectorType& Xv, const VectorType& Z) {
-        cout << ">> dG_dXc called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
+//         cout << ">> dG_dXc called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
         
         MatrixType J(2, 3);
         J <<    1,  0,  -Z[0]*sin(Xv[2]+Z[1]),
@@ -306,7 +311,7 @@ namespace engine_test {
         return J;
     }
     MatrixType dG_dZ(const VectorType& Xv, const VectorType& Z) {
-        cout << ">> dG_dZ called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
+//         cout << ">> dG_dZ called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
         
         MatrixType J(2, 2);
         J <<    cos(Xv[2]+Z[1]),  -Z[0]*sin(Xv[2]+Z[1]),
@@ -316,7 +321,7 @@ namespace engine_test {
     }
     
     VectorType PointLandmarkDistance(const VectorType& z1, const VectorType& z2) {
-        cout << ">> PointLandmarkDistance called with z1: " << z1.transpose() << ", z2: " << z2.transpose() << endl;
+//         cout << ">> PointLandmarkDistance called with z1: " << z1.transpose() << ", z2: " << z2.transpose() << endl;
         
         static const double PI2 = 2*M_PI;
         VectorType res(2);
@@ -324,16 +329,16 @@ namespace engine_test {
         
         //angular distance
         ScalarType theta1 = z1[1], theta2 = z2[1];
-        cout << "z1: " << theta1 << ", z2: " << theta2 << endl;
+//         cout << "z1: " << theta1 << ", z2: " << theta2 << endl;
         
         while(theta1 < 0.0) theta1 += PI2;
         theta1 = fmod(theta1, PI2);
         while(theta2 < 0.0) theta2 += PI2;
         theta2 = fmod(theta2, PI2);
-        cout << "theta1: " << theta1 << ", theta2: " << theta2 << endl;
+//         cout << "theta1: " << theta1 << ", theta2: " << theta2 << endl;
         
         ScalarType d1 = fmod(theta1 - theta2 + PI2, PI2), d2 = fmod(PI2 + theta2 - theta1, PI2);
-        cout << "d1: " << d1 << ", d2: " << d2 << endl;
+//         cout << "d1: " << d1 << ", d2: " << d2 << endl;
         
         if(d1 <= d2) {
             if(theta1 > theta2) {
@@ -349,7 +354,7 @@ namespace engine_test {
             }
         }
         
-        cout << "Final distance: (" << res.transpose() << ")" << endl;
+//         cout << "Final distance: (" << res.transpose() << ")" << endl;
         
         return res;
     }
@@ -365,7 +370,7 @@ namespace engine_test {
     *           SIMULATOR
     * ***************************************************************************/
     VectorType noisy_F(const VectorType& Xv, const VectorType& U) {
-        cout << ">> noisy_F called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
+//         cout << ">> noisy_F called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
         Vector3d res(Xv);
         
         res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0) + state_pos_noise(eng);
@@ -375,7 +380,7 @@ namespace engine_test {
         return res;
     }
     VectorType Observation_generator(const VectorType& Xv, const VectorType& Xm) {
-        cout << ">> Observation_generator called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
+//         cout << ">> Observation_generator called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
         
         VectorType res(2);
         res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])) + observation_noise(eng), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]) - Xv[2] + observation_noise(eng);
@@ -385,7 +390,7 @@ namespace engine_test {
     VectorType Control_input_generator(int tick) {
         VectorType res(2);
         res << 4*pow(sin(tick/300.0 * 2 * M_PI), 2), 0.8*sin(tick/500.0 * 2 * M_PI);
-//         res << 0.2, 0.005 + 0.2*cos(tick/300.0* 2 * M_PI);
+//         res << 4.0, 0.005 + 0.2*cos(tick/300.0* 2 * M_PI);
 //         res << tick*0.001, 0.2;
 //         cout << "arg: " << tick/100.0*2*M_PI;
 //         res << 1.0, 2*sin(tick/50.0*2*M_PI);
@@ -397,11 +402,37 @@ namespace engine_test {
         //real vehicle position
         VectorType Xv(3);
         Xv << 0.0, 0.0, 0.0;
-        //real landmark position
-        VectorType Xm1(2), Xm2(2);
-        Xm1 << -5.0, 5.0;
-        Xm2 << 5.0, -5.0;
+        
+        ofstream out_Xv("/tmp/Xv.dat");
+        ofstream real_Xm("/tmp/real_Xm.dat");
+        ofstream tracked_Xm("/tmp/tracked_Xm.dat");
+        
+        ///SECTION: landmark initialization
+        vector<VectorType> landmarks;
+        map<int, int> associations;
+        const int LANDMARK_NUMBER = 100;
+        const double SENSOR_RANGE_MAX = 100.0;
+        default_random_engine lre(time(NULL));
+        uniform_real_distribution<ScalarType> un_x(-50.0, 300.0);
+        uniform_real_distribution<ScalarType> un_y(50.0, -300.0);
+        
+        for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
+            VectorType Xm(2);
+            Xm << un_x(lre), un_y(lre);
+            
+            real_Xm << Xm.transpose() << " ";
+            
+            landmarks.push_back(Xm);
+        }
+        real_Xm.close();
+        
+//         VectorType Xm1(2), Xm2(2);
+//         Xm1 << -5, 5;
+//         Xm2 << 10, -10;
         //the measurement noise
+//         const double state_pos_sigma = 0.01;
+//         const double state_ang_sigma = 0.005;
+//         const double observation_sigma = 0.01;
         MatrixType R(2, 2);
         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
         MatrixType R_tot(4, 4);
@@ -417,26 +448,39 @@ namespace engine_test {
         //setup the state model
         se.Setup(Xv + Vector3d(state_pos_noise(eng), state_pos_noise(eng), state_ang_noise(eng)), Q, VM);
         //add the new landmark
-        int lindex1 = se.AddNewLandmark(Observation_generator(Xv, Xm1), LM, LIM, R);
-        int lindex2 = se.AddNewLandmark(Observation_generator(Xv, Xm2), LM, LIM, R);
+//         int lindex1 = se.AddNewLandmark(Observation_generator(Xv, Xm1), LM, LIM, R);
+//         int lindex2 = se.AddNewLandmark(Observation_generator(Xv, Xm2), LM, LIM, R);
         cout << "Initial estimated Xv: " << se.GetStateEstimation().transpose() << endl;
-        cout << "Initial estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
-        cout << "Initial estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
+//         cout << "Initial estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
+//         cout << "Initial estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
         
-        ofstream out_Xv("/tmp/Xv.dat");
-        ofstream out_Xm1("/tmp/Xm1.dat");
-        ofstream out_Xm2("/tmp/Xm2.dat");
+
+//         ofstream out_Xm1("/tmp/Xm1.dat");
+//         ofstream out_Xm2("/tmp/Xm2.dat");
+        
+        ///PLOTTING SCRIPT
+        strstream script;
+        script << "#!/usr/bin/gnuplot -persistent\nplot '/tmp/Xv.dat' u 1:2 w l t 'real', '' u 4:5 w l t 'tracked', 'real_Xm.dat' u 1:2 t ''";
+        for(int ii = 1; ii < landmarks.size(); ++ii) {
+            script << ", '' u " << 2*ii+1 << ":" << 2*ii+2 << " t ''";
+        }
+        script << endl;
+        ofstream out_script("/tmp/script.gnu");
+        out_script << script.str();
+        out_script.close();
         
         const int TOTAL_TICK = 100000;
         for(int ii = 0; ii < TOTAL_TICK; ++ii) {
+            auto t_start = high_resolution_clock::now();
+            
             cout << "--[[ ITERATION " << ii << " ]]--\n";
             //initial condition
             cout << "Real Xv: " << Xv.transpose() << endl;
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
-            cout << "Real Xm1: " << Xm1.transpose() << endl;
-            cout << "Estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
-            cout << "Real Xm2: " << Xm2.transpose() << endl;
-            cout << "Estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
+//             cout << "Real Xm1: " << Xm1.transpose() << endl;
+//             cout << "Estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
+//             cout << "Real Xm2: " << Xm2.transpose() << endl;
+//             cout << "Estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
             //the control input
             VectorType U(Control_input_generator(ii));
             cout << "--< prediction >--\nU: " << U.transpose() << endl;
@@ -447,29 +491,50 @@ namespace engine_test {
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
             
             cout << "--< update >--\n";
-            VectorType Z1(Observation_generator(Xv, Xm1)), Z2(Observation_generator(Xv, Xm2));
-            cout << "Ideal Z1: " << H(Xv, Xm1).transpose() << endl;
-            cout << "Noisy Z1: " << Z1.transpose() << endl;
-            cout << "Ideal Z2: " << H(Xv, Xm2).transpose() << endl;
-            cout << "Noisy Z2: " << Z2.transpose() << endl;
+//             VectorType Z1(Observation_generator(Xv, Xm1)), Z2(Observation_generator(Xv, Xm2));
+//             cout << "Ideal Z1: " << H(Xv, Xm1).transpose() << endl;
+//             cout << "Noisy Z1: " << Z1.transpose() << endl;
+//             cout << "Ideal Z2: " << H(Xv, Xm2).transpose() << endl;
+//             cout << "Noisy Z2: " << Z2.transpose() << endl;
             
             std::vector<AssociatedPerception> percs;
-            percs.push_back(AssociatedPerception(Z1, lindex1));
-            percs.push_back(AssociatedPerception(Z2, lindex2));
+            for(int ii = 0; ii < landmarks.size(); ++ii) {
+                //check if the robot sees the landmark ii
+                double distance = sqrt((landmarks[ii][0] - Xv[0])*(landmarks[ii][0] - Xv[0]) + (landmarks[ii][1] - Xv[1])*(landmarks[ii][1] - Xv[1]));
+                
+                if(distance <= SENSOR_RANGE_MAX) {
+                    //check if the landmarks ii has been seen before
+                    if(associations.count(ii)) {
+                        percs.push_back(AssociatedPerception(Observation_generator(Xv, landmarks[ii]), associations[ii]));
+                    } else {
+                        associations[ii] = se.AddNewLandmark(Observation_generator(Xv, landmarks[ii]), LM, LIM, R);
+                    }
+                }
+            }
             
-            se.Update(percs, R_tot);
+//             std::vector<AssociatedPerception> percs;
+//             percs.push_back(AssociatedPerception(Z1, lindex1));
+//             percs.push_back(AssociatedPerception(Z2, lindex2));
+            
+            if(!percs.empty()) {
+                se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
+            }
             cout << "Real Xv: " << Xv.transpose() << endl;
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
-            cout << "Real Xm1: " << Xm1.transpose() << endl;
-            cout << "Estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
-            cout << "Real Xm2: " << Xm2.transpose() << endl;
-            cout << "Estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
+//             cout << "Real Xm1: " << Xm1.transpose() << endl;
+//             cout << "Estimated Xm1: " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
+//             cout << "Real Xm2: " << Xm2.transpose() << endl;
+//             cout << "Estimated Xm2: " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
             
             out_Xv << Xv.transpose() << " " << se.GetStateEstimation().transpose() << endl;
-            out_Xm1 << Xm1.transpose() << " " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
-            out_Xm2 << Xm2.transpose() << " " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
+//             out_Xm1 << Xm1.transpose() << " " << se.GetLandmarkEstimation(lindex1).transpose() << endl;
+//             out_Xm2 << Xm2.transpose() << " " << se.GetLandmarkEstimation(lindex2).transpose() << endl;
             
-            cout << "--<< SUMMARY: Xv e: " << (Xv - se.GetStateEstimation()).norm() << ", Xm1 e: " << (Xm1 - se.GetLandmarkEstimation(lindex1)).norm() << ", Xm2 e: " << (Xm2 - se.GetLandmarkEstimation(lindex2)).norm()<< endl << endl;
+            cout << "--<< SUMMARY: Xv e: " << (Xv - se.GetStateEstimation()).norm() << ", Xm1 e: " << /*(Xm1 - se.GetLandmarkEstimation(lindex1)).norm() << ", Xm2 e: " << (Xm2 - se.GetLandmarkEstimation(lindex2)).norm()<< */endl;
+            
+            auto dt = high_resolution_clock::now() - t_start;
+            cout << "--<< " << duration_cast<milliseconds>(dt).count() << " ms >>--" << endl << endl;
+            cerr << '+';
         }
         
         return 0;
