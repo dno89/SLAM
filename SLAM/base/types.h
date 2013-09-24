@@ -5,16 +5,11 @@
 ////include
 //SLAM
 #include "core.h"
-//Eigen
-#include <Eigen/Dense>
 //std
 #include <stdexcept>
 
 
 namespace SLAM {
-    ////typedef
-    typedef Eigen::Matrix<ScalarType, Eigen::Dynamic, 1>                VectorType;
-    typedef Eigen::Matrix<ScalarType, Eigen::Dynamic, Eigen::Dynamic>   MatrixType;
     
     ////support classes
     /**
@@ -93,12 +88,14 @@ namespace SLAM {
     public:
         ////typedef
         typedef VectorType VehicleStateType;
+        typedef VectorType ObservationType;
         typedef VectorType LandmarkStateType;
         /**
          * @note the first argument is the vehicle state, the second is the control input
          */
-        typedef VectorType (*ObservationFunction)(const VehicleStateType&, const LandmarkStateType&);
+        typedef ObservationType (*ObservationFunction)(const VehicleStateType&, const LandmarkStateType&);
         typedef MatrixType (*ObservationJacobian)(const VehicleStateType&, const LandmarkStateType&);
+        typedef VectorType (*DistanceFunction)(const ObservationType&, const ObservationType&);
         
         ////constructor
         /**
@@ -106,9 +103,10 @@ namespace SLAM {
          * @p h the observation model function that gives the observation given the vehicle and landmark state
          * @p dh_dxv the Jacobian of @p h computed wrt the vehicle state Xv
          * @p dh_dxm the Jacobian of @p h computed wrt the landmark state Xm
+         * @p distance a function that, given 2 perceptions returns a vector representing the distance, component by component, between the two.
          */
-        LandmarkModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm) {
-            if(!(m_H && m_dH_dXm && m_dH_dXv)) {
+        LandmarkModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DistanceFunction distance = DefaultDistance) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm), m_distance(distance) {
+            if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
                 throw std::runtime_error("LandmarkModel::LandmarkModel(ObservationFunction,ObservationJacobian,ObservationJacobian) ERROR: h, dh_dxv and df_dxm must be non-NULL!\n");
             }
         }
@@ -129,32 +127,39 @@ namespace SLAM {
          * @brief check whether the object has been properly initialized
          */
         operator bool() const {
-            return m_H && m_dH_dXm && m_dH_dXv;
+            return m_H && m_dH_dXm && m_dH_dXv && m_distance;
         }
         
         /**
          * @note Wrapper for H, dH_dXv and dH_dXm functions
          */
-        VectorType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-             if(!(m_H && m_dH_dXm && m_dH_dXv)) {
+        ObservationType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
+             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
                 throw std::runtime_error("LandmarkModel::H ERROR: functions not initialized\n");
             }
             
             return (*m_H)(Xv, Xm);
         }
         MatrixType dH_dXv(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-             if(!(m_H && m_dH_dXm && m_dH_dXv)) {
+             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
                 throw std::runtime_error("LandmarkModel::dH_dXv ERROR: functions not initialized\n");
             }
             
             return (*m_dH_dXv)(Xv, Xm);
         }
         MatrixType dH_dXm(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-             if(!(m_H && m_dH_dXm && m_dH_dXv)) {
+             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
                 throw std::runtime_error("LandmarkModel::dH_dXm ERROR: functions not initialized\n");
             }
             
             return (*m_dH_dXm)(Xv, Xm);
+        }
+        VectorType Distance(const ObservationType& v1, const ObservationType& v2) const {
+            if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
+                throw std::runtime_error("LandmarkModel::Distance ERROR: functions not initialized\n");
+            }
+            
+            return (*m_distance)(v1, v2);
         }
         
     private:
@@ -162,6 +167,7 @@ namespace SLAM {
         ObservationFunction m_H = nullptr;
         ObservationJacobian m_dH_dXv = nullptr;
         ObservationJacobian m_dH_dXm = nullptr;
+        DistanceFunction m_distance = nullptr;
     };
     
     /**
@@ -260,9 +266,10 @@ namespace SLAM {
             
         ////typedef
         typedef VectorType VehicleStateType;
+        typedef VectorType ObservationType;
         
         ////INTERFACE
-        VectorType H(const VehicleStateType& Xv) const {
+        ObservationType H(const VehicleStateType& Xv) const {
              return m_lm.H(Xv, m_ls);
         }
         MatrixType dH_dXv(const VehicleStateType& Xv) const {
@@ -270,6 +277,9 @@ namespace SLAM {
         }
         MatrixType dH_dXm(const VehicleStateType& Xv) const {
              return m_lm.dH_dXm(Xv, m_ls);
+        }
+        VectorType Distance(const ObservationType& v1, const ObservationType& v2) const {
+            return m_lm.Distance(v1, v2);
         }
         
         LandmarkModel GetModel() const { return m_lm; }
@@ -280,7 +290,6 @@ namespace SLAM {
      * @brief keep together various information related to a single landmark
      */
     struct Landmark {
-//         Landmark() {}
         Landmark(const VectorType& state, const LandmarkModel& model) :
             AccumulatedSize(0), Xm(state), Model(model, Xm) {}
             

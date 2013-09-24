@@ -106,28 +106,31 @@ Matrix3d typed_df_dxv(const Vector3d& Xv, const Vector2d& U)  {
 int base_test(int argc, char **argv) {
     std::cout << "Hello, world!\nThis is a big SLAM test\n" << std::endl;
     
-    SLAMEngine e;
+//     SLAMEngine e;
+//     
+//     VectorType v(3);
+//     VectorType u(2);
+//     v << 0, 1, 2;
+//     u << 2, 3;
+//     
+//     MatrixType p(3, 3);
+//     p << 0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1;
+//     
+//     e.Setup(v, p, VehicleModel(f, df_dxv));
+//     
+//     e.Predict(u, p);
+//     
+//     Wrapper* w = new WrapperImpl<3, 2>(typed_f, typed_df_dxv);
+//     
+//     Vector3d typed_U;
+//     typed_U << 100, -100, 0;
+//     
+//     cout << w->F(v, typed_U) << endl;
     
-    VectorType v(3);
-    VectorType u(2);
-    v << 0, 1, 2;
-    u << 2, 3;
+    cout << endl << "The -1.5 mod 1.0 is " << fmod(-1.5, 1.0) << endl;
+    cout << endl << "The 2.5 mod 1.0 is " << fmod(2.5, 1.0) << endl;
     
-    MatrixType p(3, 3);
-    p << 0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1;
-    
-    e.Setup(v, p, VehicleModel(f, df_dxv));
-    
-    e.Predict(u, p);
-    
-    Wrapper* w = new WrapperImpl<3, 2>(typed_f, typed_df_dxv);
-    
-    Vector3d typed_U;
-    typed_U << 100, -100, 0;
-    
-    cout << w->F(v, typed_U) << endl;
-    
-    delete w;
+//     delete w;
     
     return 0;
 }
@@ -196,19 +199,27 @@ namespace engine_test {
     *           MODEL       
     * ***************************************************************************/
     //discretization
-    static const double time_increment = 200e-3; //200ms
+    static const double time_increment = 50e-3; //200ms
     //noise generator
-    static default_random_engine eng(time(NULL));
+    static default_random_engine eng(/*time(NULL)*/1);
     static const double mu = 0.0;
+    
     static const double state_pos_sigma = 0.01;
     static const double state_ang_sigma = 0.005;
     static const double observation_sigma = 0.01;
+    
+//     static const double state_pos_sigma = 0.001;
+//     static const double state_ang_sigma = 0.001;
+//     static const double observation_sigma = 0.01;
+    
 //     static const double state_pos_sigma = 0.05;
 //     static const double state_ang_sigma = 0.01;
 //     static const double observation_sigma = 0.02;
+    
 //     static const double state_pos_sigma = 0.00;
 //     static const double state_ang_sigma = 0.00;
 //     static const double observation_sigma = 0.00;
+    
     static normal_distribution<double> state_pos_noise(mu, state_pos_sigma);
     static normal_distribution<double> state_ang_noise(mu, state_ang_sigma);
     static normal_distribution<double> observation_noise(mu, observation_sigma);
@@ -217,15 +228,21 @@ namespace engine_test {
     //Xv = (x, y, theta)
     //U = (v, omega)
     VectorType F(const VectorType& Xv, const VectorType& U) {
-        Vector3d res(Xv);
+        cout << ">> F called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
         
+        Vector3d res(Xv);
         res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0);
         res[1] += U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0);
+        
         res[2] += U[1]*time_increment;
+        //wrap in [-PI, PI]
+        
         
         return res;
     }
     MatrixType dF_dXv(const VectorType& Xv, const VectorType& U) {
+        cout << ">> dF_dXv called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
+        
         MatrixType J(3, 3);
         J <<    1, 0, (-U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0)),
                 0, 1, (U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0)),
@@ -238,28 +255,32 @@ namespace engine_test {
     //Xm = (mx, my)
     //Z = (rho, phi)
     VectorType H(const VectorType& Xv, const VectorType& Xm) {
+        cout << ">> H called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
+        
         VectorType res(2);
-        res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]);
+        res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]) - Xv[2];
         
         return res;
     }
     MatrixType dH_dXv(const VectorType& Xv, const VectorType& Xm) {
+        cout << ">> dH_dXv called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
+        
         MatrixType J(2, 3);
-        double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
-        if(rho < 1e-3) {
-            cerr << "******* RHO TOO SMALL" << endl;
-        }
+        double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1]-Xm[1])*(Xv[1]-Xm[1]));
+
         J <<    (Xv[0] - Xm[0])/rho,            (Xv[1] - Xm[1])/rho,        0,
                 -(Xv[1] - Xm[1])/(rho*rho),     (Xv[0] - Xm[0])/(rho*rho),  -1;
         
         return J;
     }
     MatrixType dH_dXm(const VectorType& Xv, const VectorType& Xm) {
+        cout << ">> dH_dXm called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
+        
         MatrixType J(2, 2);
         double rho = sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1]));
-        if(rho < 1e-3) {
-            cerr << "******* RHO TOO SMALL" << endl;
-        }
+//         if(rho < 1e-3) {
+//             cout << ">>******* RHO TOO SMALL" << endl;
+//         }
         J <<    (-Xv[0] + Xm[0])/rho,          (-Xv[1] + Xm[1])/rho,
                 (Xv[1] - Xm[1])/(rho*rho),     -(Xv[0] - Xm[0])/(rho*rho);
         
@@ -268,12 +289,16 @@ namespace engine_test {
     
     ////initialization model
     VectorType G(const VectorType& Xv, const VectorType& Z) {
+        cout << ">> G called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
+        
         VectorType Xm(2);
         Xm << Xv[0] + Z[0]*cos(Xv[2]+Z[1]), Xv[1] + Z[0]*sin(Xv[2]+Z[1]);
         
         return Xm;
     }
     MatrixType dG_dXv(const VectorType& Xv, const VectorType& Z) {
+        cout << ">> dG_dXc called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
+        
         MatrixType J(2, 3);
         J <<    1,  0,  -Z[0]*sin(Xv[2]+Z[1]),
                 0,  1,  Z[0]*cos(Xv[2]+Z[1]);
@@ -281,24 +306,66 @@ namespace engine_test {
         return J;
     }
     MatrixType dG_dZ(const VectorType& Xv, const VectorType& Z) {
+        cout << ">> dG_dZ called with Xv = (" << Xv.transpose() << "), Z = (" << Z.transpose() << ")" << endl;
+        
         MatrixType J(2, 2);
         J <<    cos(Xv[2]+Z[1]),  -Z[0]*sin(Xv[2]+Z[1]),
                 sin(Xv[2]+Z[1]),  Z[0]*cos(Xv[2]+Z[1]);
         
         return J;
     }
+    
+    VectorType PointLandmarkDistance(const VectorType& z1, const VectorType& z2) {
+        cout << ">> PointLandmarkDistance called with z1: " << z1.transpose() << ", z2: " << z2.transpose() << endl;
+        
+        static const double PI2 = 2*M_PI;
+        VectorType res(2);
+        res[0] = z1[0] - z2[0];
+        
+        //angular distance
+        ScalarType theta1 = z1[1], theta2 = z2[1];
+        cout << "z1: " << theta1 << ", z2: " << theta2 << endl;
+        
+        while(theta1 < 0.0) theta1 += PI2;
+        theta1 = fmod(theta1, PI2);
+        while(theta2 < 0.0) theta2 += PI2;
+        theta2 = fmod(theta2, PI2);
+        cout << "theta1: " << theta1 << ", theta2: " << theta2 << endl;
+        
+        ScalarType d1 = fmod(theta1 - theta2 + PI2, PI2), d2 = fmod(PI2 + theta2 - theta1, PI2);
+        cout << "d1: " << d1 << ", d2: " << d2 << endl;
+        
+        if(d1 <= d2) {
+            if(theta1 > theta2) {
+                res[1] = d1;
+            } else {
+                res[1] = -d1;
+            }
+        } else {
+            if(theta1 > theta2) {
+                res[1] = d2;
+            } else {
+                res[1] = -d2;
+            }
+        }
+        
+        cout << "Final distance: (" << res.transpose() << ")" << endl;
+        
+        return res;
+    }
     /******************************************************************************
     *           MODEL   END
     * ***************************************************************************/
     ////model declaration
     VehicleModel VM(F, dF_dXv);
-    LandmarkModel LM(H, dH_dXv, dH_dXm);
+    LandmarkModel LM(H, dH_dXv, dH_dXm, PointLandmarkDistance);
     LandmarkInitializationModel LIM(G, dG_dXv, dG_dZ);
     
     /******************************************************************************
     *           SIMULATOR
     * ***************************************************************************/
     VectorType noisy_F(const VectorType& Xv, const VectorType& U) {
+        cout << ">> noisy_F called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
         Vector3d res(Xv);
         
         res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0) + state_pos_noise(eng);
@@ -308,21 +375,20 @@ namespace engine_test {
         return res;
     }
     VectorType Observation_generator(const VectorType& Xv, const VectorType& Xm) {
+        cout << ">> Observation_generator called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
+        
         VectorType res(2);
-        res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])) + observation_noise(eng), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]) + observation_noise(eng);
+        res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])) + observation_noise(eng), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]) - Xv[2] + observation_noise(eng);
         
         return res;
     }
     VectorType Control_input_generator(int tick) {
-        const double V_period = 300.0;
-        const double Omega_period = 500.0;
-        
         VectorType res(2);
-        res << pow(sin(tick/V_period * 2 * M_PI), 2), 0.2*sin(tick/Omega_period * 2 * M_PI);
-//         res << 0.1, 0.005 + 0.1*cos(tick/Omega_period * 2 * M_PI);
-//         res << 0.5 + tick/10000.0, 0.2 + 0.1*sin(tick/Omega_period * 2 * M_PI);
+        res << 4*pow(sin(tick/300.0 * 2 * M_PI), 2), 0.8*sin(tick/500.0 * 2 * M_PI);
+//         res << 0.2, 0.005 + 0.2*cos(tick/300.0* 2 * M_PI);
 //         res << tick*0.001, 0.2;
-//         res << 0.5, 0.4;
+//         cout << "arg: " << tick/100.0*2*M_PI;
+//         res << 1.0, 2*sin(tick/50.0*2*M_PI);
         return res;
     }
     
@@ -333,8 +399,8 @@ namespace engine_test {
         Xv << 0.0, 0.0, 0.0;
         //real landmark position
         VectorType Xm1(2), Xm2(2);
-        Xm1 << 5.0, -5.0;
-        Xm2 << 15.0, 0.0;
+        Xm1 << -5.0, 5.0;
+        Xm2 << 5.0, -5.0;
         //the measurement noise
         MatrixType R(2, 2);
         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;

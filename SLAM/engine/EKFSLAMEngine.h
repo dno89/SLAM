@@ -42,7 +42,7 @@ namespace SLAM {
             assert(initial_state_estimation.rows() == m_XvSize);
             m_Xv = initial_state_estimation;
             
-            DTRACE_L(m_Xv)
+            DPRINT("State initial estimation " << m_Xv.transpose())
             
             assert(initial_covariance_estimation.cols() == m_XvSize && initial_covariance_estimation.rows() == m_XvSize);
             m_Pvv = initial_covariance_estimation;
@@ -73,12 +73,12 @@ namespace SLAM {
             DTRACE_L(u)
             DTRACE_L(Q)
             
-            DTRACE_L(m_Xv)
+            DTRACE_L(m_Xv.transpose())
             //predict the vehicle state
             m_Xv = m_vModel.F(m_Xv, u);
             assert(m_Xv.rows() == m_XvSize);
             //Xv is now Xv-(k)
-            DTRACE_L(m_Xv)
+            DTRACE_L(m_Xv.transpose())
             
             //landmarks are supposed to be static: no update needed
             
@@ -86,17 +86,28 @@ namespace SLAM {
             //Pvv
             DTRACE_L(df_dXv)
             DTRACE_L(m_Pvv)
-            m_Pvv = df_dXv * m_Pvv * df_dXv.transpose() + Q;
+            ///TODO REMOVE THIS
+//             m_Pvv = df_dXv * m_Pvv * df_dXv.transpose() + Q;
+            MatrixType tmp;
+            tmp = df_dXv * m_Pvv * df_dXv.transpose() + Q;
+            m_Pvv = tmp;
+            
             assert(m_Pvv.cols() == m_XvSize && m_Pvv.rows() == m_XvSize);            
-            DTRACE_L(m_Pvv)
+            DPRINT("after prediction:\n" << m_Pvv)
             
             //Pvm
-            if(m_Pvm.rows() > 0) {
+            if(m_Pvm.cols() > 0) {
                 const int eta = m_Pvm.cols();
+                
                 DTRACE_L(m_Pvm)
+                ///TODO remove this
+                MatrixType tmp;
                 m_Pvm = df_dXv * m_Pvm;
+                tmp = df_dXv * m_Pvm;
+                m_Pvm = tmp;
                 assert(m_Pvm.rows() == m_XvSize && m_Pvm.cols() == eta);
-                DTRACE_L(m_Pvm)                
+                
+                DPRINT("after prediction:\n" << m_Pvm)                
             }
             
             DCLOSE_CONTEXT("Predict")
@@ -118,13 +129,27 @@ namespace SLAM {
             DTRACE(p)
             DTRACE(eta_p)
             DTRACE(eta)
+            DTRACE(m_Xv.transpose())
             
             //the innovation vector
+            VectorType std_ni(eta_p);
             VectorType ni(eta_p);
             for(int ii = 0; ii < p; ++ii) {
-                ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
+                DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
+                DPRINT("Predicted observation " << perceptions[ii].AssociatedIndex << ": " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
+                DPRINT("Actual observation " << perceptions[ii].AssociatedIndex << ": " << perceptions[ii].Z.transpose())
+                
+                std_ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
+                
+                ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Distance(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
+                
+                for(int jj = perceptions[ii].AccumulatedSize; jj < perceptions[ii].AccumulatedSize + perceptions[ii].Z.rows(); ++jj) {
+                    if(std_ni[jj] > 1.0) {
+                        DERROR("The innovation is really BIG")
+                    }
+                }
             }
-            
+            DTRACE_L(std_ni)
             DTRACE_L(ni)
             
             //the jacobian matrix
@@ -194,7 +219,7 @@ namespace SLAM {
             for(int ii = 0; ii < m_landmarks.size(); ++ii) {
                 DPRINT("landmark " << ii << ": " << m_landmarks[ii].Xm.transpose())
                 m_landmarks[ii].Xm += dX.segment(m_landmarks[ii].AccumulatedSize+m_XvSize, m_landmarks[ii].Xm.rows());
-                DPRINT("landmark " << ii << ": " << m_landmarks[ii].Xm.transpose())
+                DPRINT("after update: " << m_landmarks[ii].Xm.transpose())
             }
             
             //update the total covariance matrix
