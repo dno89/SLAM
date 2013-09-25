@@ -123,6 +123,12 @@ namespace SLAM {
          */
         LandmarkModel& operator=(const LandmarkModel&) = default;
         
+        bool operator==(const LandmarkModel& m) {
+            return  m_H == m.m_H &&
+                    m_dH_dXm == m.m_dH_dXm &&
+                    m_dH_dXv == m.m_dH_dXv;
+        }
+        
         /**
          * @brief check whether the object has been properly initialized
          */
@@ -281,6 +287,8 @@ namespace SLAM {
         }
         
         LandmarkModel GetModel() const { return m_lm; }
+        
+        operator LandmarkModel() const { return m_lm; }
     };
     
     /**

@@ -22,6 +22,9 @@ namespace SLAM {
         
         ////CONSTRUCTOR
         EKFSLAMEngine();
+        //no copy or assignment
+        EKFSLAMEngine(const EKFSLAMEngine&) = delete;
+        EKFSLAMEngine& operator=(const EKFSLAMEngine&) = delete;
         
         ////INTERFACE
         /**
@@ -68,7 +71,7 @@ namespace SLAM {
          * @brief get the current state estimation
          * @return the current state estimation
          */
-        VectorType GetStateEstimation() const {
+        const VectorType& GetStateEstimation() const {
             return m_Xv;
         }
         
@@ -77,7 +80,7 @@ namespace SLAM {
          * @p i the index of the landmark
          * @return the current state estimation for landmark @p i
          */
-        VectorType GetLandmarkEstimation(int i) const {
+        const VectorType& GetLandmarkEstimation(int i) const {
             return m_landmarks[i].Xm;
         }
         
@@ -87,6 +90,14 @@ namespace SLAM {
          */
         int GetTrackedLandmarksSize() const {
             return m_landmarks.size();
+        }
+        
+        /**
+         * @brief get the @p i -th landmark
+         * @return a const reference to the i-th landmark
+         */
+        const Landmark& GetLandmark(int i) const {
+            return m_landmarks[i];
         }
         
         

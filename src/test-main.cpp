@@ -469,13 +469,17 @@ namespace engine_test {
         
         ///PLOTTING SCRIPT
         strstream script;
-        script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\nplot '/tmp/Xv.dat' u 1:2 w l t 'real', '' u 4:5 w l t 'tracked', '/tmp/real_Xm.dat' u 1:2 t ''";
+        script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\n";
+        for(int ii = 1; ii < landmarks.size(); ++ii) {
+            script << "count" << ii << " = 0\n";
+        }
+        script << "plot '/tmp/Xv.dat' u 1:2 w l t 'real', '' u 4:5 w l t 'tracked', '/tmp/real_Xm.dat' u 1:2 t ''";
         for(int ii = 1; ii < landmarks.size(); ++ii) {
             script << ", '' u " << 2*ii+1 << ":" << 2*ii+2 << " t ''";
         }
-        script << ", '/tmp/tracked_Xm.dat' u 1:2 t ''";
+        script << ", '/tmp/tracked_Xm.dat' u 1:2:(count0 = count0 + 1) palette t ''";
         for(int ii = 1; ii < landmarks.size(); ++ii) {
-            script << ", '' u " << 2*ii+1 << ":" << 2*ii+2 << " t ''";
+            script << ", '' u " << 2*ii+1 << ":" << 2*ii+2 << ":(count" << ii << " = count" << ii << " + 1) palette t ''";
         }
         script << endl << '\0';
         ofstream out_script("/tmp/script.gnu");
