@@ -7,22 +7,24 @@
 #include <stdexcept>
 #include <cassert>
 //SLAM
-#include "../base/core.h"
-#include "../base/types.h"
-#include "../base/DMDebug.h"
+#include "../Base/core.h"
+#include "../Base/types.h"
+#include "../Base/DMDebug.h"
+#include "../DataAssociation/DataAssociation.h"
 //Eigen
 #include <Eigen/Sparse>
 
 ////DEBUG
 CREATE_PRIVATE_DEBUG_LOG("/tmp/SlamEngine.log",)
-// INIT()
 
 namespace SLAM {
-    class SLAMEngine {
+    class EKFSLAMEngine {
     public:
+        ////TYPEDEF
+        typedef std::vector<AssociatedPerception>(*AssociationFunction)(const std::vector<Observation>&, const EKFSLAMEngine&);
+        
         ////CONSTRUCTOR
-        SLAMEngine() {
-        }
+        EKFSLAMEngine() {}
         
         ////INTERFACE
         /**
@@ -62,7 +64,7 @@ namespace SLAM {
          * @p u the control input
          * @p Q the process noise covariance matrix
          */
-        void Predict(VectorType u, MatrixType Q) {
+        void Predict(const VectorType& u, const MatrixType& Q) {
             DOPEN_CONTEXT("Predict")
             
             check();
@@ -86,11 +88,7 @@ namespace SLAM {
             //Pvv
             DTRACE_L(df_dXv)
             DTRACE_L(m_Pvv)
-            ///TODO REMOVE THIS
-//             m_Pvv = df_dXv * m_Pvv * df_dXv.transpose() + Q;
-            MatrixType tmp;
-            tmp = df_dXv * m_Pvv * df_dXv.transpose() + Q;
-            m_Pvv = tmp;
+            m_Pvv = df_dXv * m_Pvv * df_dXv.transpose() + Q;
             
             assert(m_Pvv.cols() == m_XvSize && m_Pvv.rows() == m_XvSize);            
             DPRINT("after prediction:\n" << m_Pvv)
@@ -100,11 +98,7 @@ namespace SLAM {
                 const int eta = m_Pvm.cols();
                 
                 DTRACE_L(m_Pvm)
-                ///TODO remove this
-                MatrixType tmp;
                 m_Pvm = df_dXv * m_Pvm;
-                tmp = df_dXv * m_Pvm;
-                m_Pvm = tmp;
                 assert(m_Pvm.rows() == m_XvSize && m_Pvm.cols() == eta);
                 
                 DPRINT("after prediction:\n" << m_Pvm)                
@@ -117,7 +111,7 @@ namespace SLAM {
          * @brief perform update/correction based on the current perception
          * @p perceptions a vector of associated perception: the current observation
          */
-        void Update(std::vector<AssociatedPerception>& perceptions, MatrixType R) {
+        void Update(std::vector<AssociatedPerception>& perceptions, const MatrixType& R) {
             DOPEN_CONTEXT("Update")
             
             check();
@@ -239,6 +233,10 @@ namespace SLAM {
             DCLOSE_CONTEXT("Update")
         }
         
+        void Update(const std::vector<Observation>& observations, AssociationFunction AF = BasicDataAssociation) {
+            
+        }
+        
         /**
          * @brief add a new landmark to the tracked list
          * @p observation the observation associated with the new feature
@@ -247,10 +245,9 @@ namespace SLAM {
          * @p R the covariance matrix for the observation noise (in this case restricted to the new landmark)
          * @return the index at which the landmark has been inserted
          */
-        int AddNewLandmark(const VectorType& observation, const LandmarkModel& observation_model, const LandmarkInitializationModel& initialization_model, const MatrixType R) {
+        int AddNewLandmark(const VectorType& observation, const LandmarkModel& observation_model, const LandmarkInitializationModel& initialization_model, const MatrixType& R) {
             DOPEN_CONTEXT("AddNewLandmark")
             
-            //
             check();
             //check the model
             assert(observation_model);
@@ -335,8 +332,16 @@ namespace SLAM {
          * @p i the index of the landmark
          * @return the current state estimation for landmark @p i
          */
-        VectorType GetLandmarkEstimation(int i) {
+        VectorType GetLandmarkEstimation(int i) const {
             return m_landmarks[i].Xm;
+        }
+        
+        /**
+         * @brief the number of tracked landmarks
+         * @return the number of tracked landmarks
+         */
+        int GetTrackedLandmarksSize() const {
+            return m_landmarks.size();
         }
         
         

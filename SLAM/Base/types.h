@@ -253,8 +253,6 @@ namespace SLAM {
      * Just a convenient class for force the evaluation of the model on the relative landmark state.
      */
     class RestrainedLandmarkModel {
-//     public:
-//         friend class Landmark;
     private:
         const LandmarkModel m_lm;
         const VectorType& m_ls;
@@ -307,6 +305,22 @@ namespace SLAM {
     };
     
     /**
+     * @brief simple struct that contains a perception and the associated covariance.
+     */
+    struct Observation {
+        Observation() {}
+        Observation(const VectorType& z, const MatrixType& pz) : Z(z), Pz(pz), AccumulatedSize(0) 
+            {}
+        
+        //the raw perception
+        VectorType Z;
+        //the covariance matrix for this perception
+        MatrixType Pz;
+        //accumulated size, used by the engine
+        int AccumulatedSize;
+    };
+    
+    /**
      * @struct AssociatedPerception
      * @brief an observation vector with an associated index
      * @var Observation
@@ -319,12 +333,15 @@ namespace SLAM {
      * @brief Support variable used by the update function, DO NOT SET
      */
     struct AssociatedPerception {
-        AssociatedPerception() {}
+//         AssociatedPerception() {}
         AssociatedPerception(const VectorType& observation, int associated_index) :
-            Z(observation), AssociatedIndex(associated_index) {}
+            Z(observation), AssociatedIndex(associated_index), AccumulatedSize(0) {}
         
+        //the perception
         VectorType Z;
+        //the index of the associated landmark
         int AssociatedIndex;
+        //accumulated size, used by the engine
         int AccumulatedSize;
     };
 }

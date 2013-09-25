@@ -205,17 +205,17 @@ namespace engine_test {
     static default_random_engine eng(/*time(NULL)*/1);
     static const double mu = 0.0;
     
-//     static const double state_pos_sigma = 0.01;
-//     static const double state_ang_sigma = 0.005;
-//     static const double observation_sigma = 0.01;
+    static const double state_pos_sigma = 0.01;
+    static const double state_ang_sigma = 0.005;
+    static const double observation_sigma = 0.01;
     
 //     static const double state_pos_sigma = 0.001;
 //     static const double state_ang_sigma = 0.001;
 //     static const double observation_sigma = 0.01;
     
-    static const double state_pos_sigma = 0.05;
-    static const double state_ang_sigma = 0.01;
-    static const double observation_sigma = 0.02;
+//     static const double state_pos_sigma = 0.05;
+//     static const double state_ang_sigma = 0.01;
+//     static const double observation_sigma = 0.02;
     
 //     static const double state_pos_sigma = 0.1;
 //     static const double state_ang_sigma = 0.05;
@@ -446,7 +446,7 @@ namespace engine_test {
 //         Q = MatrixXd::Identity(3, 3)*state_sigma*state_sigma;
         
         //the SLAM engine
-        SLAMEngine se;
+        EKFSLAMEngine se;
         //setup the state model
         se.Setup(Xv + Vector3d(state_pos_noise(eng), state_pos_noise(eng), state_ang_noise(eng)), Q, VM);
         //add the new landmark
@@ -525,6 +525,8 @@ namespace engine_test {
             if(!percs.empty()) {
                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
             }
+            cout << "Landmark perceived: " << percs.size() << endl;
+            cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
             cout << "Real Xv: " << Xv.transpose() << endl;
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
 //             cout << "Real Xm1: " << Xm1.transpose() << endl;
@@ -548,10 +550,10 @@ namespace engine_test {
             }
             tracked_Xm << endl;
             
-            cout << "--<< SUMMARY: Xv e: " << (Xv - se.GetStateEstimation()).norm() << ", Xm1 e: " << /*(Xm1 - se.GetLandmarkEstimation(lindex1)).norm() << ", Xm2 e: " << (Xm2 - se.GetLandmarkEstimation(lindex2)).norm()<< */endl;
+            cout << "--<< SUMMARY: Xv e: " << (Xv - se.GetStateEstimation()).norm() << /*", Xm1 e: " << (Xm1 - se.GetLandmarkEstimation(lindex1)).norm() << ", Xm2 e: " << (Xm2 - se.GetLandmarkEstimation(lindex2)).norm()<< */endl;
             
             auto dt = high_resolution_clock::now() - t_start;
-            cout << "--<< " << duration_cast<milliseconds>(dt).count() << " ms >>--" << endl << endl;
+            cout << "--<< " << duration_cast<microseconds>(dt).count() << " us >>--" << endl << endl;
             cerr << '+';
         }
         
