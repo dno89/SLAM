@@ -2,5 +2,5 @@
 
 using namespace SLAM;
 
-std::vector<AssociatedPerception> BasicDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&) {
+std::vector<LandmarkAssociation> BasicDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&) {
 }

@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <random>
 #include <strstream>
+#include <fstream>
 //SLAM
 #include "../SLAM/SLAM.h"
 //Eigen
@@ -130,6 +131,12 @@ int base_test(int argc, char **argv) {
     
     cout << endl << "The -1.5 mod 1.0 is " << fmod(-1.5, 1.0) << endl;
     cout << endl << "The 2.5 mod 1.0 is " << fmod(2.5, 1.0) << endl;
+    
+    MatrixType m(2, 2);
+    m << 1, 2, 3, 4;
+    cout << "m: " << m << endl;
+    m.conservativeResize(5, 5);
+    cout << "m after resizing: " << m << endl;
     
 //     delete w;
     

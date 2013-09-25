@@ -309,15 +309,17 @@ namespace SLAM {
      */
     struct Observation {
         Observation() {}
-        Observation(const VectorType& z, const MatrixType& pz) : Z(z), Pz(pz), AccumulatedSize(0) 
+        Observation(const VectorType& z, const MatrixType& pz, const LandmarkModel& lm, const LandmarkInitializationModel& lim) : Z(z), Pz(pz), LM(lm), LIM(lim) 
             {}
         
         //the raw perception
         VectorType Z;
         //the covariance matrix for this perception
         MatrixType Pz;
-        //accumulated size, used by the engine
-        int AccumulatedSize;
+        //the landmark model
+        LandmarkModel LM;
+        //the initialization model
+        LandmarkInitializationModel LIM;
     };
     
     /**
@@ -343,6 +345,18 @@ namespace SLAM {
         int AssociatedIndex;
         //accumulated size, used by the engine
         int AccumulatedSize;
+    };
+    
+    /**
+     * @brief simple pair with more meaningful names
+     */
+    struct LandmarkAssociation {
+        LandmarkAssociation(int observation_index = -1, int landmark_index = -1) : 
+            ObservationIndex(observation_index), LandmarkIndex(landmark_index) 
+            {}
+        
+        int ObservationIndex;
+        int LandmarkIndex;
     };
 }
 

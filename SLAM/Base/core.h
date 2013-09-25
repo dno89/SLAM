@@ -22,8 +22,6 @@ namespace SLAM {
      * @p v2 second vector
      * @return @p v1 - @p v2
      */
-    VectorType DefaultDistance(const VectorType& v1, const VectorType& v2)  {
-        return v1 - v2;
-    }
+    VectorType DefaultDistance(const VectorType& v1, const VectorType& v2);
 }
 // #endif  //CORE_H
