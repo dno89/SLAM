@@ -40,13 +40,13 @@
 
 #define CREATE_PUBLIC_DEBUG_LOG(FNAME,FTOKEN)\
 std::ofstream _dm_log##FTOKEN(FNAME, std::ios_base::trunc);\
-std::ofstream& _log_alias = _dm_log##FTOKEN;\
+static std::ofstream& _log_alias = _dm_log##FTOKEN;\
 static int _verbose_level = 3;\
 static int _nested = 0;
 
 #define CREATE_PRIVATE_DEBUG_LOG(FNAME,FTOKEN)\
 static std::ofstream _dm_log##FTOKEN(FNAME, std::ios_base::trunc);\
-std::ofstream& _log_alias = _dm_log##FTOKEN;\
+static std::ofstream& _log_alias = _dm_log##FTOKEN;\
 static int _verbose_level = 3;\
 static int _nested = 0;
 
@@ -54,19 +54,19 @@ static int _nested = 0;
 
 #define CREATE_PUBLIC_DEBUG_LOG_WTIME(FNAME,FTOKEN)\
 std::ofstream _dm_log##FTOKEN((std::string(FNAME)+boost::posix_time::to_iso_extended_string(boost::posix_time::second_clock::local_time())+".log").c_str(), std::ios_base::trunc);\
-std::ofstream& _log_alias = _dm_log##FTOKEN;\
+static std::ofstream& _log_alias = _dm_log##FTOKEN;\
 static int _verbose_level = 3;\
 static int _nested = 0;
 
 #define CREATE_PRIVATE_DEBUG_LOG_WTIME(FNAME,FTOKEN)\
 static std::ofstream _dm_log##FTOKEN((std::string(FNAME)+boost::posix_time::to_iso_extended_string(boost::posix_time::second_clock::local_time())+".log").c_str(), std::ios_base::trunc);\
-std::ofstream& _log_alias = _dm_log##FTOKEN;\
+static std::ofstream& _log_alias = _dm_log##FTOKEN;\
 static int _verbose_level = 3;\
 static int _nested = 0;
 
 #define IMPORT_DEBUG_LOG(FTOKEN)\
 extern std::ofstream _dm_log##FTOKEN;\
-std::ofstream& _log_alias = _dm_log##FTOKEN;\
+static std::ofstream& _log_alias = _dm_log##FTOKEN;\
 static int _verbose_level = 3;\
 static int _nested = 0;
 

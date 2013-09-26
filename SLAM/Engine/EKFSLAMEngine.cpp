@@ -6,11 +6,12 @@
 #include <stdexcept>
 #include <cassert>
 #include <vector>
+#include <chrono>
 //Eigen
 #include <Eigen/Sparse>
 
 ////DEBUG
-CREATE_PRIVATE_DEBUG_LOG("/tmp/SlamEngine.log",)
+CREATE_PUBLIC_DEBUG_LOG("/tmp/SlamEngine.log",)
 
 using namespace SLAM;
 using namespace std;
@@ -45,6 +46,9 @@ void EKFSLAMEngine::Setup(const VectorType& initial_state_estimation, const Matr
 
 void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
     DOPEN_CONTEXT("Predict")
+#ifndef NDEBUG
+    auto t_start = chrono::high_resolution_clock::now();
+#endif  //NDEBUG
     
     check();
     
@@ -54,12 +58,12 @@ void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
     DTRACE_L(u)
     DTRACE_L(Q)
     
-    DTRACE_L(m_Xv.transpose())
+    DTRACE(m_Xv.transpose())
     //predict the vehicle state
     m_Xv = m_vModel.F(m_Xv, u);
     assert(m_Xv.rows() == m_XvSize);
     //Xv is now Xv-(k)
-    DTRACE_L(m_Xv.transpose())
+    DPRINT("After prediction: " << m_Xv.transpose())
     
     //landmarks are supposed to be static: no update needed
     
@@ -83,11 +87,19 @@ void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
         DPRINT("after prediction:\n" << m_Pvm)                
     }
     
+#ifndef NDEBUG
+    auto dt = chrono::high_resolution_clock::now()-t_start;
+    DINFO("Predict took " << chrono::duration_cast<chrono::microseconds>(dt).count() << " us.")
+#endif  //NDEBUG
+    
     DCLOSE_CONTEXT("Predict")
 }
 
 void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const MatrixType& R) {
     DOPEN_CONTEXT("Update")
+#ifndef NDEBUG
+    auto t_start = chrono::high_resolution_clock::now();
+#endif  //NDEBUG
     
     check();
     
@@ -101,14 +113,14 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     DTRACE(m_Xv.transpose())
     
     //the innovation vector
-    VectorType std_ni(eta_p);
+//     VectorType std_ni(eta_p);
     VectorType ni(eta_p);
     for(int ii = 0; ii < p; ++ii) {
-        DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
-        DPRINT("Predicted observation " << perceptions[ii].AssociatedIndex << ": " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
-        DPRINT("Actual observation " << perceptions[ii].AssociatedIndex << ": " << perceptions[ii].Z.transpose())
+//         DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
+//         DPRINT("Predicted observation " << perceptions[ii].AssociatedIndex << ": " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
+//         DPRINT("Actual observation " << perceptions[ii].AssociatedIndex << ": " << perceptions[ii].Z.transpose())
         
-        std_ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
+//         std_ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
         
         ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Distance(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
         
@@ -118,7 +130,7 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
             }
         }
     }
-    DTRACE_L(std_ni)
+//     DTRACE_L(std_ni)
     DTRACE_L(ni)
     
     //the jacobian matrix
@@ -201,14 +213,24 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     m_Pvm = P.topRightCorner(m_XvSize, eta);
     m_Pmm = P.bottomRightCorner(eta, eta);
     
-    DTRACE_L(m_Pvv)
-    DTRACE_L(m_Pvm)
-    DTRACE_L(m_Pmm)
+//     DTRACE_L(m_Pvv)
+//     DTRACE_L(m_Pvm)
+//     DTRACE_L(m_Pmm)
+    
+#ifndef NDEBUG
+    auto dt = chrono::high_resolution_clock::now()-t_start;
+    DINFO("Preassociated Update took " << chrono::duration_cast<chrono::microseconds>(dt).count() << " us.")
+#endif  //NDEBUG
     
     DCLOSE_CONTEXT("Update")
 }
 
 void EKFSLAMEngine::Update(const std::vector<Observation>& observations, AssociationFunction AF) {
+    DOPEN_CONTEXT("Update")
+#ifndef NDEBUG
+    auto t_start = chrono::high_resolution_clock::now();
+#endif  //NDEBUG
+    
     std::vector<LandmarkAssociation> assoc = (*AF)(observations, *this);
     
     std::vector<AssociatedPerception> ap;
@@ -228,7 +250,7 @@ void EKFSLAMEngine::Update(const std::vector<Observation>& observations, Associa
             
             R.conservativeResize(R.rows() + ob_size, R.cols() + ob_size);
             R.rightCols(ob_size) = MatrixXd::Zero(R.rows(), ob_size);
-            R.bottomRows(ob_size) = MatrixXd::Zero(R.cols(), ob_size);
+            R.bottomRows(ob_size) = MatrixXd::Zero(ob_size, R.cols());
             R.bottomRightCorner(ob_size, ob_size) = observations[la.ObservationIndex].Pz;
         } else {
             //new landmark
@@ -245,10 +267,20 @@ void EKFSLAMEngine::Update(const std::vector<Observation>& observations, Associa
     for(auto o : new_landmark) {
         AddNewLandmark(o.Z, o.LM, o.LIM, o.Pz);
     }
+    
+#ifndef NDEBUG
+    auto dt = chrono::high_resolution_clock::now()-t_start;
+    DINFO("Update with association took " << chrono::duration_cast<chrono::microseconds>(dt).count() << " us.")
+#endif  //NDEBUG
+    
+    DCLOSE_CONTEXT("Update")
 }
 
 int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const LandmarkModel& observation_model, const LandmarkInitializationModel& initialization_model, const MatrixType& R) {
     DOPEN_CONTEXT("AddNewLandmark")
+#ifndef NDEBUG
+    auto t_start = chrono::high_resolution_clock::now();
+#endif  //NDEBUG
     
     check();
     //check the model
@@ -315,6 +347,11 @@ int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const Landm
         
         DTRACE_L(m_Pvm)
     }
+    
+#ifndef NDEBUG
+    auto dt = chrono::high_resolution_clock::now()-t_start;
+    DINFO("AddNewLandmark took " << chrono::duration_cast<chrono::microseconds>(dt).count() << " us.")
+#endif  //NDEBUG
     
     DCLOSE_CONTEXT("AddNewLandmark")
     
