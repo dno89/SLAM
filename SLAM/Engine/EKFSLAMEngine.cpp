@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <cassert>
 #include <vector>
+#include <fstream>
 #include <chrono>
 //Eigen
 #include <Eigen/Sparse>
@@ -16,6 +17,10 @@ CREATE_PUBLIC_DEBUG_LOG("/tmp/SlamEngine.log",)
 using namespace SLAM;
 using namespace std;
 using namespace Eigen;
+
+////DEBUG
+ofstream dl_update("/tmp/Xupdate.dat");
+ofstream dl_uncertainty("/tmp/Xuncertainty.dat");
 
 EKFSLAMEngine::EKFSLAMEngine() {}
 
@@ -71,7 +76,8 @@ void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
     //Pvv
     DTRACE_L(df_dXv)
     DTRACE_L(m_Pvv)
-    m_Pvv = df_dXv * m_Pvv * df_dXv.transpose() + Q;
+    ///FIXME
+    m_Pvv = (df_dXv * m_Pvv * df_dXv.transpose() + Q).eval();
     
     assert(m_Pvv.cols() == m_XvSize && m_Pvv.rows() == m_XvSize);            
     DPRINT("after prediction:\n" << m_Pvv)
@@ -116,19 +122,13 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
 //     VectorType std_ni(eta_p);
     VectorType ni(eta_p);
     for(int ii = 0; ii < p; ++ii) {
-//         DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
-//         DPRINT("Predicted observation " << perceptions[ii].AssociatedIndex << ": " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
-//         DPRINT("Actual observation " << perceptions[ii].AssociatedIndex << ": " << perceptions[ii].Z.transpose())
+        DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
+        DPRINT("Predicted observation : " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
+        DPRINT("Actual observation : " << perceptions[ii].Z.transpose())
         
 //         std_ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
         
         ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Distance(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
-        
-        for(int jj = perceptions[ii].AccumulatedSize; jj < perceptions[ii].AccumulatedSize + perceptions[ii].Z.rows(); ++jj) {
-            if(std_ni[jj] > 1.0) {
-                DERROR("The innovation is really BIG")
-            }
-        }
     }
 //     DTRACE_L(std_ni)
     DTRACE_L(ni)
@@ -139,8 +139,10 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     for(int kk = 0; kk < p; ++kk) {
         //the jacobian wrt the vehicle state: a (Mjkk)x(Nv) matrix
         MatrixType dH_dXv = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXv(m_Xv);
+        DTRACE_L(dH_dXv)
         //the jacobian wrt the landmark state: a (Mjkk)x(Njkk) matrix
         MatrixType dH_dXm = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXm(m_Xv);
+        DTRACE_L(dH_dXm)
         
         //set it on the sparse Jacobian
         //these are the spanned rows
@@ -170,26 +172,32 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     //the total P matrix
     MatrixType P(m_XvSize+eta, m_XvSize+eta);
     P << m_Pvv, m_Pvm, m_Pvm.transpose(), m_Pmm;
-    DTRACE_L(m_Pvv)
-    DTRACE_L(m_Pvm)
-    DTRACE_L(m_Pmm)
-    DTRACE_L(P)
+//     DTRACE_L(m_Pvv)
+//     DTRACE_L(m_Pvm)
+//     DTRACE_L(m_Pmm)
+//     DTRACE_L(P)
     
     //the S matrix
     MatrixType S(eta_p, eta_p);
     S.noalias() = dH_dX * P * dH_dX.transpose() + R;
     
-    DTRACE_L(S)
+//     DTRACE_L(S)
     
     //the Kalman gain
     MatrixType W(eta+m_XvSize, eta_p);
     W = P * dH_dX.transpose() * S.inverse();
     
-    DTRACE_L(W)
+//     DTRACE_L(W)
 
     //the complete state update
     VectorType dX = W * ni;
     DTRACE_L(dX)
+    
+    ///DEBUG
+    for(int ii = 0; ii < dX.rows(); ++ii) {
+        dl_update << abs(dX[ii]) << " ";
+    }
+    dl_update << endl;
     
     //update the vehicle state
     DTRACE_L(m_Xv)
@@ -206,7 +214,13 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     //update the total covariance matrix
     P = P - W * S * W.transpose();
     
-    DTRACE_L(P)
+    ///DEBUG
+    for(int ii = 0; ii < P.cols(); ++ii) {
+        dl_uncertainty << sqrt(P(ii, ii)) << " ";
+    }
+    dl_uncertainty << endl;
+    
+//     DTRACE_L(P)
     
     //propagates the update to the 3 components
     m_Pvv = P.topLeftCorner(m_XvSize, m_XvSize);

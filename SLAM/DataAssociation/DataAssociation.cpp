@@ -15,6 +15,7 @@ IMPORT_DEBUG_LOG()
 
 //BASIC DATA ASSOCIATION
 double SLAM::BasicDataAssociation_constants::DistanceThreshold = 2.0;
+
 std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Observation>& observations, const EKFSLAMEngine& se) {
     DOPEN_CONTEXT("BasicDataAssociation")
 #ifndef NDEBUG
