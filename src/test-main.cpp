@@ -500,7 +500,7 @@ namespace engine_test {
         
         MatrixType R(2, 2);
 //         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
-		R << observation_rho_sigma*observation_rho_sigma, 0,
+		R << observation_rho_sigma*observation_rho_sigma, 0.0,
 		0.0, observation_alpha_sigma*observation_alpha_sigma;
 			
         MatrixType Q(3, 3);
