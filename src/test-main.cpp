@@ -14,6 +14,8 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 
+#include "SequentialAssociator.hpp"
+
 using namespace std;
 using namespace chrono;
 using namespace Eigen;
@@ -674,7 +676,7 @@ namespace engine_test {
         out_script << script.str() << flush;
         out_script.close();
         
-        const int TOTAL_TICK = 10000;
+        const int TOTAL_TICK = 1e4;
         for(int ii = 0; ii < TOTAL_TICK; ++ii) {
             auto t_start = high_resolution_clock::now();
             

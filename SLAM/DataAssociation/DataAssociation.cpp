@@ -4,6 +4,7 @@
 #include "../Base/DMDebug.h"
 #include "DataAssociation.h"
 #include "../Engine/EKFSLAMEngine.h"
+#include "SequentialAssociator.hpp"
 //std
 #include <limits>
 #include <chrono>
@@ -14,7 +15,7 @@ using namespace std;
 IMPORT_DEBUG_LOG()
 
 //BASIC DATA ASSOCIATION
-double SLAM::BasicDataAssociation_constants::DistanceThreshold = 2.0;
+double SLAM::BasicDataAssociationConstants::DistanceThreshold = 2.0;
 
 std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Observation>& observations, const EKFSLAMEngine& se) {
     DOPEN_CONTEXT("BasicDataAssociation")
