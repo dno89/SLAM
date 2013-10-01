@@ -127,4 +127,10 @@ vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observa
 			//there are tracked landmarks of this type
 		}
 	}
+	
+	/**
+	 * TODO: i due vettori (osservazioni e percezioni di landmark) devono essere ordinati per forzare un ordine di associazione.
+	 * Bisogna inserire nel LandmarkModel un puntatore ad una funzione di ordinamento per le percezioni.
+	 * Usando quella funzione bisogna ordinare i vector dei vari sottogruppi, ordinando allo stesso modo anche i vector che mantengono gli indici originali. Per fare le 2 cose insieme si potrebbero usare mappe di vector di coppie <VectorType, int> in modo da spostare tutti gli elementi insieme
+	 */
 }
