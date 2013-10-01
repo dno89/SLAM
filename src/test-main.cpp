@@ -14,8 +14,6 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 
-#include "SequentialAssociator.hpp"
-
 using namespace std;
 using namespace chrono;
 using namespace Eigen;
