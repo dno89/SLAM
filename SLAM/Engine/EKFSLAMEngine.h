@@ -1,5 +1,10 @@
-// #ifndef EKFSLAMENGINE_H
-// #define EKFSLAMENGINE_H
+/**
+ * \file EKFSLAMEngine.h
+ * \author Daniele Molinari -- 238168
+ * \version 1.0
+ */
+
+
 #pragma once
 
 ////include
@@ -65,7 +70,11 @@ namespace SLAM {
          * @p R the covariance matrix for the observation noise (in this case restricted to the new landmark)
          * @return the index at which the landmark has been inserted
          */
-        int AddNewLandmark(const VectorType& raw_observation, const LandmarkModel& observation_model, const LandmarkInitializationModel& initialization_model, const MatrixType& R);
+        int AddNewLandmark(const VectorType& raw_observation, const LandmarkPerceptionModel& observation_model, const LandmarkInitializationModel& initialization_model, const MatrixType& R);
+        /**
+         * Overload that accept the LandmarkModel struct
+         */
+        int AddNewLandmark(const VectorType& raw_observation, const LandmarkModel& landmark_model, const MatrixType& R);
         
         /**
          * @brief get the current state estimation
@@ -147,5 +156,3 @@ namespace SLAM {
         int preprocess_perceptions(std::vector<AssociatedPerception>& p);
     };
 }
-
-// #endif  //EKFSLAMENGINE_H

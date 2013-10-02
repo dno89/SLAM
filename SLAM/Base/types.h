@@ -1,5 +1,9 @@
-// #ifndef TYPES_H
-// #define TYPES_H
+/**
+ * \file types.h
+ * \author Daniele Molinari -- 238168
+ * \version 1.0
+ */
+
 #pragma once
 
 ////include
@@ -84,7 +88,7 @@ namespace SLAM {
     /**
      * @class LandmarkModel a class that incapsulate the vehicle model and its Jacobian
      */
-    class LandmarkModel {
+    class LandmarkPerceptionModel {
     public:
         ////typedef
         typedef VectorType VehicleStateType;
@@ -106,7 +110,7 @@ namespace SLAM {
          * @p dh_dxm the Jacobian of @p h computed wrt the landmark state Xm
          * @p distance a function that, given 2 perceptions returns a vector representing the distance, component by component, between the two.
          */
-        LandmarkModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DistanceFunction distance = DefaultDistance, SortFunction sort = DefaultSort) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm), m_distance(distance), m_sort(sort) {
+        LandmarkPerceptionModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DistanceFunction distance = DefaultDistance, SortFunction sort = DefaultSort) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm), m_distance(distance), m_sort(sort) {
             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
                 throw std::runtime_error("LandmarkModel::LandmarkModel(ObservationFunction,ObservationJacobian,ObservationJacobian) ERROR: h, dh_dxv and df_dxm must be non-NULL!\n");
             }
@@ -114,17 +118,17 @@ namespace SLAM {
         /**
          * @brief empty constructor
          */
-        LandmarkModel() {}
+        LandmarkPerceptionModel() {}
         /**
          * @brief default copy constructor
          */
-        LandmarkModel(const LandmarkModel&) = default;
+        LandmarkPerceptionModel(const LandmarkPerceptionModel&) = default;
         /**
          * @brief default copy operator
          */
-        LandmarkModel& operator=(const LandmarkModel&) = default;
+        LandmarkPerceptionModel& operator=(const LandmarkPerceptionModel&) = default;
         
-        bool operator==(const LandmarkModel& m) {
+        bool operator==(const LandmarkPerceptionModel& m) {
             return  m_H == m.m_H &&
                     m_dH_dXm == m.m_dH_dXm &&
                     m_dH_dXv == m.m_dH_dXv;
@@ -265,14 +269,37 @@ namespace SLAM {
     };
     
     /**
+     * Just a convenient struct that hold both a LandmarkPerceptionModel and a LandmarkInitializationModel
+     */
+    struct LandmarkModel {
+        ////constructors
+        LandmarkModel() {}
+        LandmarkModel(const LandmarkPerceptionModel& lpm, const LandmarkInitializationModel& lim) : 
+            LPM(lpm), LIM(lim) {}
+        LandmarkModel(const LandmarkModel&) = default;
+        ////assignment
+        LandmarkModel& operator=(const LandmarkModel&) = default;
+        
+        ////automatic conversion
+        operator LandmarkInitializationModel&() { return LIM; }
+        operator const LandmarkInitializationModel&() const { return LIM; }
+        operator LandmarkPerceptionModel&() { return LPM; }
+        operator const LandmarkPerceptionModel&() const { return LPM; }
+        
+        //member data
+        LandmarkPerceptionModel LPM;
+        LandmarkInitializationModel LIM;
+    };
+    
+    /**
      * Just a convenient class for force the evaluation of the model on the relative landmark state.
      */
     class RestrainedLandmarkModel {
     private:
-        const LandmarkModel m_lm;
+        const LandmarkPerceptionModel m_lm;
         const VectorType& m_ls;
     public:
-        RestrainedLandmarkModel(const LandmarkModel& landmark_model, const VectorType& landmark_state) :
+        RestrainedLandmarkModel(const LandmarkPerceptionModel& landmark_model, const VectorType& landmark_state) :
             m_lm(landmark_model), m_ls(landmark_state) {}
         RestrainedLandmarkModel(const RestrainedLandmarkModel&) = delete;
         RestrainedLandmarkModel& operator=(const RestrainedLandmarkModel&) = delete;
@@ -295,9 +322,9 @@ namespace SLAM {
             return m_lm.Distance(v1, v2);
         }
         
-        LandmarkModel GetModel() const { return m_lm; }
+        const LandmarkPerceptionModel& GetModel() const { return m_lm; }
         
-        operator LandmarkModel() const { return m_lm; }
+        operator const LandmarkPerceptionModel&() const { return m_lm; }
     };
     
     /**
@@ -305,7 +332,7 @@ namespace SLAM {
      * @brief keep together various information related to a single landmark
      */
     struct Landmark {
-        Landmark(const VectorType& state, const LandmarkModel& model) :
+        Landmark(const VectorType& state, const LandmarkPerceptionModel& model) :
             AccumulatedSize(0), Xm(state), Model(model, Xm) {}
             
         Landmark(const Landmark& l) : AccumulatedSize(l.AccumulatedSize), Xm(l.Xm), Model(l.Model.GetModel(), Xm)
@@ -326,7 +353,9 @@ namespace SLAM {
      */
     struct Observation {
         Observation() {}
-        Observation(const VectorType& z, const MatrixType& pz, const LandmarkModel& lm, const LandmarkInitializationModel& lim) : Z(z), Pz(pz), LM(lm), LIM(lim) 
+        Observation(const VectorType& z, const MatrixType& pz, const LandmarkModel& lm) : Z(z), Pz(pz), LM(lm)
+            {} 
+        Observation(const VectorType& z, const MatrixType& pz, const LandmarkPerceptionModel& lpm, const LandmarkInitializationModel& lim) : Z(z), Pz(pz), LM(lpm, lim) 
             {}
         
         //the raw perception
@@ -335,8 +364,9 @@ namespace SLAM {
         MatrixType Pz;
         //the landmark model
         LandmarkModel LM;
-        //the initialization model
-        LandmarkInitializationModel LIM;
+//         LandmarkPerceptionModel LM;
+//         //the initialization model
+//         LandmarkInitializationModel LIM;
     };
     
     /**
@@ -376,5 +406,3 @@ namespace SLAM {
         int LandmarkIndex;
     };
 }
-
-// #endif  //TYPES_H

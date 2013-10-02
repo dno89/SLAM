@@ -1,3 +1,9 @@
+/**
+ * \file core.cpp
+ * \author Daniele Molinari -- 238168
+ * \version 1.0
+ */
+
 ////include
 //SLAM
 #include "core.h"

@@ -10,6 +10,8 @@
 #include <fstream>
 //SLAM
 #include "../SLAM/SLAM.h"
+#include "../SLAM/Vehicle/SimpleUnicycle.h"
+#include "../SLAM/Landmark/PolarPointLandmark.h"
 //Eigen
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
@@ -414,8 +416,9 @@ namespace engine_test {
     * ***************************************************************************/
     ////model declaration
     VehicleModel VM(F, dF_dXv);
-    LandmarkModel LM(H, dH_dXv, dH_dXm, PointLandmarkDistance);
+    LandmarkPerceptionModel LPM(H, dH_dXv, dH_dXm, PointLandmarkDistance);
     LandmarkInitializationModel LIM(G, dG_dXv, dG_dZ);
+    LandmarkModel LM(LPM, LIM);
     
     /******************************************************************************
     *           SIMULATOR
@@ -450,7 +453,7 @@ namespace engine_test {
         return res;
     }
     
-    static const int LANDMARK_NUMBER = 50;
+    static const int LANDMARK_NUMBER = 60;
     static const double SENSOR_RANGE_MAX = 70;
     static const double SENSOR_RANGE_MIN = 0.05;
     static const double SENSOR_ANGLE_MAX = 2.1*M_PI;
@@ -515,7 +518,8 @@ namespace engine_test {
         //the SLAM engine
         EKFSLAMEngine se;
         //setup the state model
-        se.Setup(Vector3d(0, 0, 0), Q, VM);
+//         se.Setup(Vector3d(0, 0, 0), Q, VM);
+        se.Setup(Vector3d(0, 0, 0), Q, Models::SimpleUnicycleModel);
         cout << "Initial estimated Xv: " << se.GetStateEstimation().transpose() << endl;
         
         ///PLOTTING SCRIPT
@@ -586,7 +590,7 @@ namespace engine_test {
             }
             if(!toAdd.empty()) {
                 for(auto l_index : toAdd) {
-                    associations[l_index] = se.AddNewLandmark(Observation_generator(Xv, landmarks[l_index]), LM, LIM, R);
+                    associations[l_index] = se.AddNewLandmark(Observation_generator(Xv, landmarks[l_index]), Models::PolarPointLandmarkModel, R);
                 }
             }
             cout << "Landmark perceived: " << percs.size() << endl;
@@ -714,7 +718,7 @@ namespace engine_test {
                 
                 if(distance <= SENSOR_RANGE_MAX && distance > 0.05) {
                     //check if the landmarks ii has been seen before
-                    observations.push_back(Observation(Observation_generator(Xv, landmarks[ii]), R, LM, LIM));
+                    observations.push_back(Observation(Observation_generator(Xv, landmarks[ii]), R, LPM, LIM));
                 }
             }
             

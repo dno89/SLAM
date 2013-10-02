@@ -1,3 +1,9 @@
+/**
+ * \file DataAssociation.h
+ * \author Daniele Molinari -- 238168
+ * \version 1.0
+ */
+
 #pragma once
 
 ////include

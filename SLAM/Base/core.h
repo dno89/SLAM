@@ -1,5 +1,9 @@
-// #ifndef CORE_H
-// #define CORE_H
+/**
+ * \file core.h
+ * \author Daniele Molinari -- 238168
+ * \version 1.0
+ */
+
 #pragma once
 
 ////include
@@ -32,4 +36,3 @@ namespace SLAM {
      */
     bool DefaultSort(const VectorType& v1, const VectorType& v2);
 }
-// #endif  //CORE_H

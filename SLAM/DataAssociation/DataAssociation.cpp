@@ -1,3 +1,9 @@
+/**
+ * \file DataAssociation.cpp
+ * \author Daniele Molinari -- 238168
+ * \version 1.0
+ */
+
 ////include
 //SLAM
 #include "../Base/core.cpp"
@@ -76,9 +82,9 @@ std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Ob
 ScalarType SequentialDataAssociationContants::DistanceThreshold = 2.0;
 vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observation>& observations, const EKFSLAMEngine& se) {
 	////typedef
-	typedef VectorType ValueType;
-	typedef SequentialAssociator<ValueType, ValueType, ScalarType> SAType;
-    typedef map<LandmarkModel, vector<pair<ValueType, int>>> MapType;
+// 	typedef VectorType ValueType;
+	typedef SequentialAssociator<VectorType, VectorType, ScalarType> SAType;
+    typedef map<LandmarkPerceptionModel, vector<pair<VectorType, int>>> MapType;
     //MapType: for each model type, store a vector of Observations(landmark observations) with the relative original index in the initial sequence
 	
 	//the returned vector of landmark associations
@@ -104,14 +110,14 @@ vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observa
 	//observations group and landmarks group must be sorted (Required by sequential associator)
 	//sort observation
 	for(auto it = observation_groups.begin(); it != observation_groups.end(); ++it) {
-        const LandmarkModel& lm = it->first;
+        const LandmarkPerceptionModel& lm = it->first;
         
         //sort
         sort(it->second.begin(), it->second.end(), [&lm](const MapType::mapped_type::value_type& v1, const MapType::mapped_type::value_type& v2){return lm.Sort(v1.first, v2.first);});
     }
     //sort landmark observation
     for(auto it = landmark_groups.begin(); it != landmark_groups.end(); ++it) {
-        const LandmarkModel& lm = it->first;
+        const LandmarkPerceptionModel& lm = it->first;
         
         //sort
         sort(it->second.begin(), it->second.end(), [&lm](const MapType::mapped_type::value_type& v1, const MapType::mapped_type::value_type& v2){return lm.Sort(v1.first, v2.first);});
@@ -119,7 +125,7 @@ vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observa
 	
 	//now iterate over each observation group
 	for(auto it = observation_groups.begin(); it != observation_groups.end(); ++it) {
-		const LandmarkModel& lm = it->first;
+		const LandmarkPerceptionModel& lm = it->first;
         
 		if(!landmark_groups.count(lm)) {
 			//there are not tracked landmarks of this type
@@ -130,12 +136,12 @@ vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observa
 		SAType se([&lm](const SAType::Value1& v1, const SAType::Value2& v2){ return lm.Distance(v1, v2).norm();});
 		
         //create the observation subgroup
-        vector<ValueType> observations_Z;
+        vector<VectorType> observations_Z;
         for(auto p : observation_groups[lm]) {
             observations_Z.push_back(p.first);
         }
 		//create the landmark subgroup
-		vector<ValueType> landmarks_Z;
+		vector<VectorType> landmarks_Z;
         for(auto p : landmark_groups[lm]) {
             landmarks_Z.push_back(p.first);
         }

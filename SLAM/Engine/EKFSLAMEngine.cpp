@@ -1,3 +1,9 @@
+/**
+ * \file EKFSLAMEngine.cpp
+ * \author Daniele Molinari -- 238168
+ * \version 1.0
+ */
+
 ////include
 //SLAM
 #include "EKFSLAMEngine.h"
@@ -279,7 +285,7 @@ void EKFSLAMEngine::Update(const std::vector<Observation>& observations, Associa
     
     //add the new landmarks
     for(auto o : new_landmark) {
-        AddNewLandmark(o.Z, o.LM, o.LIM, o.Pz);
+        AddNewLandmark(o.Z, o.LM, o.Pz);
     }
     
 #ifndef NDEBUG
@@ -290,7 +296,7 @@ void EKFSLAMEngine::Update(const std::vector<Observation>& observations, Associa
     DCLOSE_CONTEXT("Update")
 }
 
-int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const LandmarkModel& observation_model, const LandmarkInitializationModel& initialization_model, const MatrixType& R) {
+int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const LandmarkPerceptionModel& observation_model, const LandmarkInitializationModel& initialization_model, const MatrixType& R) {
     DOPEN_CONTEXT("AddNewLandmark")
 #ifndef NDEBUG
     auto t_start = chrono::high_resolution_clock::now();
@@ -371,6 +377,11 @@ int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const Landm
     
     return m_landmarks.size()-1;
 }
+
+int EKFSLAMEngine::AddNewLandmark ( const SLAM::VectorType& raw_observation, const LandmarkModel& landmark_model, const MatrixType& R ) {
+    AddNewLandmark(raw_observation, landmark_model.LPM, landmark_model.LIM, R);
+}
+
 
 inline void EKFSLAMEngine::check() {
     if(!m_init) throw std::runtime_error("SLAMEngine ERROR: a function has been called with the object not propertly initialize (call Setup before using the object)\n");
