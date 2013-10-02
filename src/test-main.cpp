@@ -213,17 +213,17 @@ namespace engine_test {
     static default_random_engine eng_ob(/*time(NULL)*/1);
     static const double mu = 0.0;
     
-    static const double state_pos_sigma = 0.01;
-    static const double state_ang_sigma = 0.005;
-    static const double observation_sigma = 0.01;
+//     static const double state_pos_sigma = 0.01;
+//     static const double state_ang_sigma = 0.005;
+//     static const double observation_sigma = 0.01;
     
 //     static const double state_pos_sigma = 0.001;
 //     static const double state_ang_sigma = 0.001;
 //     static const double observation_sigma = 0.01;
     
-//     static const double state_pos_sigma = 0.05;
-//     static const double state_ang_sigma = 0.01;
-//     static const double observation_sigma = 0.01;
+    static const double state_pos_sigma = 0.05;
+    static const double state_ang_sigma = 0.001;    //this noise make the whole estimation diverge
+    static const double observation_sigma = 0.01;
     
 //     static const double state_pos_sigma = 0.1;
 //     static const double state_ang_sigma = 0.05;
@@ -408,7 +408,7 @@ namespace engine_test {
     * ***************************************************************************/
     ////model declaration
     VehicleModel VM(F, dF_dXv);
-    LandmarkModel LM(H, dH_dXv, dH_dXm/*, PointLandmarkDistance*/);
+    LandmarkModel LM(H, dH_dXv, dH_dXm, PointLandmarkDistance);
     LandmarkInitializationModel LIM(G, dG_dXv, dG_dZ);
     
     /******************************************************************************
@@ -445,7 +445,7 @@ namespace engine_test {
     }
     
     static const int LANDMARK_NUMBER = 40;
-    static const double SENSOR_RANGE_MAX = 1e10;
+    static const double SENSOR_RANGE_MAX = 50;
     static const double SENSOR_RANGE_MIN = 0.05;
     static const double SENSOR_ANGLE_MAX = 2.1*M_PI;
     static default_random_engine lre(1);
@@ -453,6 +453,8 @@ namespace engine_test {
     static uniform_int_distribution<int> un_y(-100, 50);
     
     int slam_engine_test(int argc, char **argv) {
+//         const double observation_sigma = 0.00001;
+        
         //real vehicle position
         VectorType Xv(3);
         Xv << state_pos_noise(eng_state), state_pos_noise(eng_state), state_ang_noise(eng_state);
@@ -466,20 +468,20 @@ namespace engine_test {
         vector<VectorType> landmarks;
         map<int, int> associations;
         
-//         for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
-//             VectorType Xm(2);
-//             Xm << un_x(lre), un_y(lre);
-//             
-//             real_Xm << Xm.transpose() << " ";
-//             
-//             landmarks.push_back(Xm);
-//         }
-//         real_Xm.close();
+        for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
+            VectorType Xm(2);
+            Xm << un_x(lre), un_y(lre);
+            
+            real_Xm << Xm.transpose() << " ";
+            
+            landmarks.push_back(Xm);
+        }
+        real_Xm.close();
         
-        VectorType Xm(2);
-        Xm << 300, 0;
-        landmarks.push_back(Xm);
-        real_Xm << Xm.transpose() << " ";
+//         VectorType Xm(2);
+//         Xm << 300, 0;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
         
 //         Xm << 0, 10;
 //         landmarks.push_back(Xm);
@@ -545,6 +547,7 @@ namespace engine_test {
             cout << "--< update >--\n";
             
             std::vector<AssociatedPerception> percs;
+            std::vector<int> toAdd;
             for(int ii = 0; ii < landmarks.size(); ++ii) {
                 //check if the robot sees the landmark ii
                 Vector2d z = H(Xv, landmarks[ii]);
@@ -555,13 +558,19 @@ namespace engine_test {
                     if(associations.count(ii)) {
                         percs.push_back(AssociatedPerception(Observation_generator(Xv, landmarks[ii]), associations[ii]));
                     } else {
-                        associations[ii] = se.AddNewLandmark(Observation_generator(Xv, landmarks[ii]), LM, LIM, R);
+                        toAdd.push_back(ii);
+//                         associations[ii] = se.AddNewLandmark(Observation_generator(Xv, landmarks[ii]), LM, LIM, R);
                     }
                 }
             }
             
             if(!percs.empty()) {
                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
+            }
+            if(!toAdd.empty()) {
+                for(auto l_index : toAdd) {
+                    associations[l_index] = se.AddNewLandmark(Observation_generator(Xv, landmarks[l_index]), LM, LIM, R);
+                }
             }
             cout << "Landmark perceived: " << percs.size() << endl;
             cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
