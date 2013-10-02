@@ -588,6 +588,7 @@ namespace engine_test {
                 for(auto l_index : toAdd) {
                     associations[l_index] = se.AddNewLandmark(Observation_generator(Xv, landmarks[l_index]), LM, LIM, R);
                 }
+            }
             cout << "Landmark perceived: " << percs.size() << endl;
             cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
             cout << "Real Xv: " << Xv.transpose() << endl;
@@ -632,15 +633,24 @@ namespace engine_test {
         ///SECTION: landmark initialization
         vector<VectorType> landmarks;
         
-        for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
-            VectorType Xm(2);
-            Xm << un_x(lre), un_y(lre);
-            
-            real_Xm << Xm.transpose() << " ";
-            
-            landmarks.push_back(Xm);
-        }
-        real_Xm.close();
+//         for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
+//             VectorType Xm(2);
+//             Xm << un_x(lre), un_y(lre);
+//             
+//             real_Xm << Xm.transpose() << " ";
+//             
+//             landmarks.push_back(Xm);
+//         }
+//         real_Xm.close();
+        
+        VectorType Xm(2);
+        Xm << 0, 10;
+        landmarks.push_back(Xm);
+        real_Xm << Xm.transpose() << " ";
+        
+        Xm << 0, -10;
+        landmarks.push_back(Xm);
+        real_Xm << Xm.transpose() << " ";
         
 		MatrixType R(2, 2);
 		//         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;

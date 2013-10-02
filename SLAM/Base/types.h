@@ -96,6 +96,7 @@ namespace SLAM {
         typedef ObservationType (*ObservationFunction)(const VehicleStateType&, const LandmarkStateType&);
         typedef MatrixType (*ObservationJacobian)(const VehicleStateType&, const LandmarkStateType&);
         typedef VectorType (*DistanceFunction)(const ObservationType&, const ObservationType&);
+        typedef bool (*SortFunction)(const ObservationType&, const ObservationType&);
         
         ////constructor
         /**
@@ -105,7 +106,7 @@ namespace SLAM {
          * @p dh_dxm the Jacobian of @p h computed wrt the landmark state Xm
          * @p distance a function that, given 2 perceptions returns a vector representing the distance, component by component, between the two.
          */
-        LandmarkModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DistanceFunction distance = DefaultDistance) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm), m_distance(distance) {
+        LandmarkModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DistanceFunction distance = DefaultDistance, SortFunction sort = DefaultSort) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm), m_distance(distance), m_sort(sort) {
             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
                 throw std::runtime_error("LandmarkModel::LandmarkModel(ObservationFunction,ObservationJacobian,ObservationJacobian) ERROR: h, dh_dxv and df_dxm must be non-NULL!\n");
             }
@@ -133,39 +134,46 @@ namespace SLAM {
          * @brief check whether the object has been properly initialized
          */
         operator bool() const {
-            return m_H && m_dH_dXm && m_dH_dXv && m_distance;
+            return m_H && m_dH_dXm && m_dH_dXv && m_distance && m_sort;
         }
         
         /**
          * @note Wrapper for H, dH_dXv and dH_dXm functions
          */
         ObservationType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
+             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance && m_sort)) {
                 throw std::runtime_error("LandmarkModel::H ERROR: functions not initialized\n");
             }
             
             return (*m_H)(Xv, Xm);
         }
         MatrixType dH_dXv(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
+             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance && m_sort)) {
                 throw std::runtime_error("LandmarkModel::dH_dXv ERROR: functions not initialized\n");
             }
             
             return (*m_dH_dXv)(Xv, Xm);
         }
         MatrixType dH_dXm(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
+             if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance && m_sort)) {
                 throw std::runtime_error("LandmarkModel::dH_dXm ERROR: functions not initialized\n");
             }
             
             return (*m_dH_dXm)(Xv, Xm);
         }
         VectorType Distance(const ObservationType& v1, const ObservationType& v2) const {
-            if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance)) {
+            if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance && m_sort)) {
                 throw std::runtime_error("LandmarkModel::Distance ERROR: functions not initialized\n");
             }
             
             return (*m_distance)(v1, v2);
+        }
+        bool Sort(const ObservationType& v1, const ObservationType& v2) const {
+            if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance && m_sort)) {
+                throw std::runtime_error("LandmarkModel::Sort ERROR: functions not initialized\n");
+            }
+            
+            return (*m_sort)(v1, v2);
         }
         
     private:
@@ -174,6 +182,7 @@ namespace SLAM {
         ObservationJacobian m_dH_dXv = nullptr;
         ObservationJacobian m_dH_dXm = nullptr;
         DistanceFunction m_distance = nullptr;
+        SortFunction m_sort = nullptr;
     };
     
     /**

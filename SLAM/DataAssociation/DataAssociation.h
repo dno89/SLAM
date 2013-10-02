@@ -13,9 +13,12 @@ namespace SLAM {
     
     ////PROTOTYPES
     namespace BasicDataAssociationConstants {
-        extern double DistanceThreshold;
+        extern ScalarType DistanceThreshold;
     }
     std::vector<LandmarkAssociation> BasicDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
 	
+    namespace SequentialDataAssociationContants {
+        extern ScalarType DistanceThreshold;
+    }
 	std::vector<LandmarkAssociation> SequentialDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
 }

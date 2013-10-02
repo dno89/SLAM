@@ -8,6 +8,8 @@
 //std
 #include <limits>
 #include <chrono>
+#include <algorithm>
+#include <iterator>
 
 using namespace SLAM;
 using namespace std;
@@ -15,8 +17,7 @@ using namespace std;
 IMPORT_DEBUG_LOG()
 
 //BASIC DATA ASSOCIATION
-double SLAM::BasicDataAssociationConstants::DistanceThreshold = 2.0;
-
+ScalarType SLAM::BasicDataAssociationConstants::DistanceThreshold = 2.0;
 std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Observation>& observations, const EKFSLAMEngine& se) {
     DOPEN_CONTEXT("BasicDataAssociation")
 #ifndef NDEBUG
@@ -26,17 +27,14 @@ std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Ob
     //the return value
     vector<LandmarkAssociation> ret(observations.size());
     //check if landmark has been associated
-    ///FIXME: this works the best
 //     bool* associated = new bool[se.GetTrackedLandmarksSize()]{(false)};
     bool* associated = new bool[se.GetTrackedLandmarksSize()];
     for(int kk = 0; kk < se.GetTrackedLandmarksSize(); ++kk) {
-        ///FIXME: with uninitialized vector it work better.
-        ///FIXME: with no association, it work best
         associated[kk] = false;
     }
     
     for(int ii = 0; ii < observations.size(); ++ii) {
-        double min_distance = std::numeric_limits<double>::max();
+        double min_distance = numeric_limits<double>::max();
         int min_index = -1;
         
         for(int jj = 0; jj < se.GetTrackedLandmarksSize(); ++jj) {
@@ -74,58 +72,98 @@ std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Ob
 }
 
 ////SEQUENTIAL DATA ASSOCIATION
+///TODO: DEBUG THIS!!! FIXME FIXME
+ScalarType SequentialDataAssociationContants::DistanceThreshold = 2.0;
 vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observation>& observations, const EKFSLAMEngine& se) {
 	////typedef
 	typedef VectorType ValueType;
 	typedef SequentialAssociator<ValueType, ValueType, ScalarType> SAType;
+    typedef map<LandmarkModel, vector<pair<ValueType, int>>> MapType;
+    //MapType: for each model type, store a vector of Observations(landmark observations) with the relative original index in the initial sequence
 	
 	//the returned vector of landmark associations
 	vector<LandmarkAssociation> ret;
 	
 	//first divide the observations into homogeneous group wrt the landmark model
-	map<LandmarkModel, vector<ValueType>> observation_groups;
-	map<LandmarkModel, vector<int>> observation_original_indexes;
+	MapType observation_groups;
 	for(int ii = 0; ii < observations.size(); ++ii) {
-		///TODO: check this is OK
-// 		if(!observation_groups.count(observations[ii].LM)) {
-// 			//If not already present, insert it
-// 			observation_groups.insert(make_pair(observations[ii].LM, vector<ValueType>()));
-// 			observation_original_indexes.insert(make_pair(observations[ii].LM, vector<int>()));
-// 		}
 		//add this element
-		observation_groups[observations[ii].LM].push_back(observations[ii].Z);
-		//keep track of its original index
-		observation_original_indexes[observations[ii].LM].push_back(ii);
+		observation_groups[observations[ii].LM].push_back(make_pair(observations[ii].Z, ii));
 	}
 	
 	//divide the traked landmarks into homogeneous group wrt the landmark model
 	//these groups store the perception associated to the landmark state, not the state itself
-	map<LandmarkModel, vector<ValueType>> landmark_groups;
-	map<LandmarkModel, vector<int>> landmark_original_indexes;
+	MapType landmark_groups;
 	const vector<Landmark>& lms = se.GetLandmarks();
 	for(int ii = 0; ii < lms.size(); ++ii) {
-		///TODO: check this is OK
-// 		if(!landmark_groups.count(lms[ii].Model)) {
-// 			//If not already present, insert it
-// 			landmark_groups.insert(make_pair(lms[ii].Model.GetModel(), vector<ValueType>()));
-// 			landmark_original_indexes.insert(make_pair(lms[ii].Model.GetModel(), vector<ValueType>()));
-// 		}
 		//add the perception associated to this element
 		//note Model is a RestrainedModel
-		landmark_groups[lms[ii].Model].push_back(lms[ii].Model.H(se.GetStateEstimation()));
-		//keep track of its original index in the tracked landmarks
-		landmark_original_indexes[observations[ii].LM].push_back(ii);
+		landmark_groups[lms[ii].Model].push_back(make_pair(lms[ii].Model.H(se.GetStateEstimation()), ii));
 	}
+	
+	//observations group and landmarks group must be sorted (Required by sequential associator)
+	//sort observation
+	for(auto it = observation_groups.begin(); it != observation_groups.end(); ++it) {
+        const LandmarkModel& lm = it->first;
+        
+        //sort
+        sort(it->second.begin(), it->second.end(), [&lm](const MapType::mapped_type::value_type& v1, const MapType::mapped_type::value_type& v2){return lm.Sort(v1.first, v2.first);});
+    }
+    //sort landmark observation
+    for(auto it = landmark_groups.begin(); it != landmark_groups.end(); ++it) {
+        const LandmarkModel& lm = it->first;
+        
+        //sort
+        sort(it->second.begin(), it->second.end(), [&lm](const MapType::mapped_type::value_type& v1, const MapType::mapped_type::value_type& v2){return lm.Sort(v1.first, v2.first);});
+    }
 	
 	//now iterate over each observation group
 	for(auto it = observation_groups.begin(); it != observation_groups.end(); ++it) {
 		const LandmarkModel& lm = it->first;
+        
+		if(!landmark_groups.count(lm)) {
+			//there are not tracked landmarks of this type
+            continue;
+		}
+		
 		//lambdas to wrap the return type of the distance function and take the norm
 		SAType se([&lm](const SAType::Value1& v1, const SAType::Value2& v2){ return lm.Distance(v1, v2).norm();});
 		
-		if(landmark_groups.count(lm)) {
-			//there are tracked landmarks of this type
-		}
+        //create the observation subgroup
+        vector<ValueType> observations_Z;
+        for(auto p : observation_groups[lm]) {
+            observations_Z.push_back(p.first);
+        }
+		//create the landmark subgroup
+		vector<ValueType> landmarks_Z;
+        for(auto p : landmark_groups[lm]) {
+            landmarks_Z.push_back(p.first);
+        }
+		
+		//make the association
+		SAType::AssociationVector av;
+		se.associate(observations_Z, landmarks_Z, av);
+        
+        vector<LandmarkAssociation> sub_ret(observation_groups[lm].size());
+        //set the correct observation index in the sub return
+        for(int ii = 0; ii < sub_ret.size(); ++ii) {
+            sub_ret[ii].ObservationIndex = observation_groups[lm][ii].second;
+        }
+        
+        for(auto ip : av) {
+            int tmp_ob_index = ip.first;
+            int tmp_lm_index = ip.second;
+            
+            //distance threshold
+            if(lm.Distance(observations_Z[tmp_ob_index], landmarks_Z[tmp_lm_index]).norm() < SequentialDataAssociationContants::DistanceThreshold) {
+                //accept this association
+                int real_lm_index = landmark_groups[lm][tmp_lm_index].second;
+                sub_ret[tmp_ob_index].LandmarkIndex = real_lm_index;
+            }
+        }
+        
+        //add the sub_ret to the total return
+        copy(sub_ret.begin(), sub_ret.end(), back_inserter(ret));
 	}
 	
 	/**
@@ -133,4 +171,6 @@ vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observa
 	 * Bisogna inserire nel LandmarkModel un puntatore ad una funzione di ordinamento per le percezioni.
 	 * Usando quella funzione bisogna ordinare i vector dei vari sottogruppi, ordinando allo stesso modo anche i vector che mantengono gli indici originali. Per fare le 2 cose insieme si potrebbero usare mappe di vector di coppie <VectorType, int> in modo da spostare tutti gli elementi insieme
 	 */
+    
+    return ret;
 }
