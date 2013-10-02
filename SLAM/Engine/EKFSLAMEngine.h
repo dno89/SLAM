@@ -100,6 +100,14 @@ namespace SLAM {
             return m_landmarks[i];
         }
         
+        /**
+		 * @brief get the landmarks list
+		 * @return a const reference to the landmarks list
+		 */
+        const std::vector<Landmark>& GetLandmarks() const {
+			return m_landmarks;
+		}
+        
         
     private:
         ////DATA

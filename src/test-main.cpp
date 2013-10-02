@@ -216,14 +216,19 @@ namespace engine_test {
 //     static const double state_pos_sigma = 0.01;
 //     static const double state_ang_sigma = 0.005;
 //     static const double observation_sigma = 0.01;
+
+    static const double state_pos_sigma = 0.01;
+    static const double state_ang_sigma = 0.005;
+	static const double observation_rho_sigma = 0.01;
+	static const double observation_alpha_sigma = 0.004;
     
 //     static const double state_pos_sigma = 0.001;
 //     static const double state_ang_sigma = 0.001;
 //     static const double observation_sigma = 0.01;
     
-    static const double state_pos_sigma = 0.05;
-    static const double state_ang_sigma = 0.001;    //this noise make the whole estimation diverge
-    static const double observation_sigma = 0.01;
+    //static const double state_pos_sigma = 0.05;
+    //static const double state_ang_sigma = 0.001;    //this noise make the whole estimation diverge
+    //static const double observation_sigma = 0.01;
     
 //     static const double state_pos_sigma = 0.1;
 //     static const double state_ang_sigma = 0.05;
@@ -235,7 +240,8 @@ namespace engine_test {
     
     static normal_distribution<double> state_pos_noise(mu, state_pos_sigma);
     static normal_distribution<double> state_ang_noise(mu, state_ang_sigma);
-    static normal_distribution<double> observation_noise(mu, observation_sigma);
+	static normal_distribution<double> observation_rho_noise(mu, observation_rho_sigma);
+	static normal_distribution<double> observation_alpha_noise(mu, observation_alpha_sigma);
     
     ////vehicle model
     //Xv = (x, y, theta)
@@ -428,7 +434,7 @@ namespace engine_test {
 //         cout << ">> Observation_generator called with Xv = (" << Xv.transpose() << "), Xm = (" << Xm.transpose() << ")" << endl;
         
         VectorType res(2);
-        res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])) + observation_noise(eng_ob), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]) - Xv[2] + observation_noise(eng_ob);
+        res << sqrt((Xv[0]-Xm[0])*(Xv[0]-Xm[0]) + (Xv[1] - Xm[1])*(Xv[1] - Xm[1])) + observation_rho_noise(eng_ob), atan2(Xm[1]-Xv[1], Xm[0] - Xv[0]) - Xv[2] + observation_alpha_noise(eng_ob);
         
         return res;
     }
@@ -444,8 +450,8 @@ namespace engine_test {
         return res;
     }
     
-    static const int LANDMARK_NUMBER = 40;
-    static const double SENSOR_RANGE_MAX = 50;
+    static const int LANDMARK_NUMBER = 50;
+    static const double SENSOR_RANGE_MAX = 70;
     static const double SENSOR_RANGE_MIN = 0.05;
     static const double SENSOR_ANGLE_MAX = 2.1*M_PI;
     static default_random_engine lre(1);
@@ -453,11 +459,12 @@ namespace engine_test {
     static uniform_int_distribution<int> un_y(-100, 50);
     
     int slam_engine_test(int argc, char **argv) {
-//         const double observation_sigma = 0.00001;
+//         const double observation_sigma = 0.01;
         
         //real vehicle position
         VectorType Xv(3);
-        Xv << state_pos_noise(eng_state), state_pos_noise(eng_state), state_ang_noise(eng_state);
+// 		Xv << state_pos_noise(eng_state), state_pos_noise(eng_state), state_ang_noise(eng_state);
+		Xv << 0.0, 0.0, 0.0;
         
         ofstream out_Xv("/tmp/Xv.dat");
         ofstream out_XvE("/tmp/XvE.dat");
@@ -496,7 +503,10 @@ namespace engine_test {
 //         real_Xm << Xm.transpose() << " ";
         
         MatrixType R(2, 2);
-        R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
+//         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
+		R << observation_rho_sigma*observation_rho_sigma, 0.0,
+		0.0, observation_alpha_sigma*observation_alpha_sigma;
+			
         MatrixType Q(3, 3);
         Q << state_pos_sigma*state_pos_sigma, 0, 0,
             0, state_pos_sigma*state_pos_sigma, 0,
@@ -510,7 +520,8 @@ namespace engine_test {
         
         ///PLOTTING SCRIPT
         strstream script;
-        script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\nunset colorbox\n";
+// 		script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\nunset colorbox\n";
+		script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\n";
         for(int ii = 0; ii < landmarks.size(); ++ii) {
             script << "count" << ii << " = 0\n";
         }
@@ -527,7 +538,7 @@ namespace engine_test {
         out_script << script.str() << flush;
         out_script.close();
         
-        const int TOTAL_TICK = 10000;
+        const unsigned long int TOTAL_TICK = 1e4;
         for(int ii = 0; ii < TOTAL_TICK; ++ii) {
             auto t_start = high_resolution_clock::now();
             
@@ -548,30 +559,35 @@ namespace engine_test {
             
             std::vector<AssociatedPerception> percs;
             std::vector<int> toAdd;
-            for(int ii = 0; ii < landmarks.size(); ++ii) {
+            for(int jj = 0; jj < landmarks.size(); ++jj) {
                 //check if the robot sees the landmark ii
-                Vector2d z = H(Xv, landmarks[ii]);
+                Vector2d z = H(Xv, landmarks[jj]);
 //                 double distance = sqrt((landmarks[ii][0] - Xv[0])*(landmarks[ii][0] - Xv[0]) + (landmarks[ii][1] - Xv[1])*(landmarks[ii][1] - Xv[1]));
                 
                 if(z[0] <= SENSOR_RANGE_MAX && z[0] > SENSOR_RANGE_MIN && abs(z[1]) <= SENSOR_ANGLE_MAX) {
                     //check if the landmarks ii has been seen before
-                    if(associations.count(ii)) {
-                        percs.push_back(AssociatedPerception(Observation_generator(Xv, landmarks[ii]), associations[ii]));
+                    if(associations.count(jj)) {
+                        percs.push_back(AssociatedPerception(Observation_generator(Xv, landmarks[jj]), associations[jj]));
                     } else {
-                        toAdd.push_back(ii);
+                        toAdd.push_back(jj);
 //                         associations[ii] = se.AddNewLandmark(Observation_generator(Xv, landmarks[ii]), LM, LIM, R);
                     }
                 }
             }
             
             if(!percs.empty()) {
-                se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
+				MatrixXd r = MatrixXd::Zero(percs.size()*2, percs.size()*2);
+				for(int jj = 0; jj < percs.size(); ++jj) {
+					r(2*jj, 2*jj) = observation_rho_sigma*observation_rho_sigma;
+					r(2*jj+1, 2*jj+1) = observation_alpha_sigma*observation_alpha_sigma;
+				}
+// 				cerr << r;
+                se.Update(percs, r);
             }
             if(!toAdd.empty()) {
                 for(auto l_index : toAdd) {
                     associations[l_index] = se.AddNewLandmark(Observation_generator(Xv, landmarks[l_index]), LM, LIM, R);
                 }
-            }
             cout << "Landmark perceived: " << percs.size() << endl;
             cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
             cout << "Real Xv: " << Xv.transpose() << endl;
@@ -626,8 +642,11 @@ namespace engine_test {
         }
         real_Xm.close();
         
-        MatrixType R(2, 2);
-        R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
+		MatrixType R(2, 2);
+		//         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
+		R << observation_rho_sigma*observation_rho_sigma, 0,
+		0.0, observation_alpha_sigma*observation_alpha_sigma;
+		
         MatrixType Q(3, 3);
         Q << state_pos_sigma*state_pos_sigma, 0, 0,
             0, state_pos_sigma*state_pos_sigma, 0,
@@ -658,7 +677,7 @@ namespace engine_test {
         out_script << script.str() << flush;
         out_script.close();
         
-        const int TOTAL_TICK = 10000;
+        const int TOTAL_TICK = 1e4;
         for(int ii = 0; ii < TOTAL_TICK; ++ii) {
             auto t_start = high_resolution_clock::now();
             
