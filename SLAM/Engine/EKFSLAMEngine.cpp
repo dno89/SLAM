@@ -80,8 +80,8 @@ void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
     
     //update the covariance matrices
     //Pvv
-    DTRACE_L(df_dXv)
-    DTRACE_L(m_Pvv)
+//     DTRACE_L(df_dXv)
+//     DTRACE_L(m_Pvv)
     ///FIXME
     m_Pvv = (df_dXv * m_Pvv * df_dXv.transpose() + Q).eval();
     
@@ -92,11 +92,11 @@ void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
     if(m_Pvm.cols() > 0) {
         const int eta = m_Pvm.cols();
         
-        DTRACE_L(m_Pvm)
+//         DTRACE_L(m_Pvm)
         m_Pvm = df_dXv * m_Pvm;
         assert(m_Pvm.rows() == m_XvSize && m_Pvm.cols() == eta);
         
-        DPRINT("after prediction:\n" << m_Pvm)                
+//         DPRINT("after prediction:\n" << m_Pvm)                
     }
     
 #ifndef NDEBUG
@@ -128,16 +128,16 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
 //     VectorType std_ni(eta_p);
     VectorType ni(eta_p);
     for(int ii = 0; ii < p; ++ii) {
-        DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
-        DPRINT("Predicted observation : " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
-        DPRINT("Actual observation : " << perceptions[ii].Z.transpose())
+//         DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
+//         DPRINT("Predicted observation : " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
+//         DPRINT("Actual observation : " << perceptions[ii].Z.transpose())
         
 //         std_ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
         
         ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Distance(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
     }
 //     DTRACE_L(std_ni)
-    DTRACE_L(ni)
+//     DTRACE_L(ni)
     
     //the jacobian matrix
     Eigen::SparseMatrix<ScalarType> dH_dX(eta_p, eta + m_XvSize);
@@ -145,10 +145,10 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     for(int kk = 0; kk < p; ++kk) {
         //the jacobian wrt the vehicle state: a (Mjkk)x(Nv) matrix
         MatrixType dH_dXv = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXv(m_Xv);
-        DTRACE_L(dH_dXv)
+//         DTRACE_L(dH_dXv)
         //the jacobian wrt the landmark state: a (Mjkk)x(Njkk) matrix
         MatrixType dH_dXm = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXm(m_Xv);
-        DTRACE_L(dH_dXm)
+//         DTRACE_L(dH_dXm)
         
         //set it on the sparse Jacobian
         //these are the spanned rows
@@ -172,7 +172,7 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     
 #ifndef NDEBUG
     MatrixType dense_dH_dX = dH_dX;
-    DTRACE_L(dense_dH_dX)
+//     DTRACE_L(dense_dH_dX)
 #endif
     
     //the total P matrix
@@ -197,7 +197,7 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
 
     //the complete state update
     VectorType dX = W * ni;
-    DTRACE_L(dX)
+//     DTRACE_L(dX)
     
     ///DEBUG
     for(int ii = 0; ii < dX.rows(); ++ii) {
@@ -212,9 +212,9 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     
     //update the landmark state
     for(int ii = 0; ii < m_landmarks.size(); ++ii) {
-        DPRINT("landmark " << ii << ": " << m_landmarks[ii].Xm.transpose())
+//         DPRINT("landmark " << ii << ": " << m_landmarks[ii].Xm.transpose())
         m_landmarks[ii].Xm += dX.segment(m_landmarks[ii].AccumulatedSize+m_XvSize, m_landmarks[ii].Xm.rows());
-        DPRINT("after update: " << m_landmarks[ii].Xm.transpose())
+//         DPRINT("after update: " << m_landmarks[ii].Xm.transpose())
     }
     
     //update the total covariance matrix

@@ -109,7 +109,7 @@ VectorType SLAM::Models::PolarPointLandmark::PolarPointLandmarkDistance(const Ve
 }
 
 bool Models::PolarPointLandmark::Sort ( const SLAM::VectorType& z1, const SLAM::VectorType& z2 ) {
-    return z1[1] < z2[2];
+    return z1[1] < z2[1];
 }
 
 const LandmarkModel SLAM::Models::PolarPointLandmarkModel(LandmarkPerceptionModel(PolarPointLandmark::H, PolarPointLandmark::dH_dXv, PolarPointLandmark::dH_dXm, PolarPointLandmark::PolarPointLandmarkDistance, PolarPointLandmark::Sort), LandmarkInitializationModel(PolarPointLandmark::G, PolarPointLandmark::dG_dXv, PolarPointLandmark::dG_dZ));

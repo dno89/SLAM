@@ -245,6 +245,8 @@ namespace engine_test {
 	static normal_distribution<double> observation_rho_noise(mu, observation_rho_sigma);
 	static normal_distribution<double> observation_alpha_noise(mu, observation_alpha_sigma);
     
+	
+	namespace unused  {
     ////vehicle model
     //Xv = (x, y, theta)
     //U = (v, omega)
@@ -372,6 +374,9 @@ namespace engine_test {
         
         return res;
     }
+    
+	}
+	
     VectorType StateDistance(const VectorType& z1, const VectorType& z2) {
 //         cout << ">> PointLandmarkDistance called with z1: " << z1.transpose() << ", z2: " << z2.transpose() << endl;
         
@@ -415,10 +420,10 @@ namespace engine_test {
     *           MODEL   END
     * ***************************************************************************/
     ////model declaration
-    VehicleModel VM(F, dF_dXv);
-    LandmarkPerceptionModel LPM(H, dH_dXv, dH_dXm, PointLandmarkDistance);
-    LandmarkInitializationModel LIM(G, dG_dXv, dG_dZ);
-    LandmarkModel LM(LPM, LIM);
+//     VehicleModel VM(F, dF_dXv);
+//     LandmarkPerceptionModel LPM(H, dH_dXv, dH_dXm, PointLandmarkDistance);
+//     LandmarkInitializationModel LIM(G, dG_dXv, dG_dZ);
+//     LandmarkModel LM(LPM, LIM);
     
     /******************************************************************************
     *           SIMULATOR
@@ -460,6 +465,11 @@ namespace engine_test {
     static default_random_engine lre(1);
     static uniform_int_distribution<int> un_x(-50, 500);
     static uniform_int_distribution<int> un_y(-100, 50);
+	
+	/**
+	 * ASSOCIATION CONFIGURATIONS PARAMS
+	 */
+	
     
     int slam_engine_test(int argc, char **argv) {
 //         const double observation_sigma = 0.01;
@@ -565,7 +575,7 @@ namespace engine_test {
             std::vector<int> toAdd;
             for(int jj = 0; jj < landmarks.size(); ++jj) {
                 //check if the robot sees the landmark ii
-                Vector2d z = H(Xv, landmarks[jj]);
+                Vector2d z = Models::PolarPointLandmark::H(Xv, landmarks[jj]);
 //                 double distance = sqrt((landmarks[ii][0] - Xv[0])*(landmarks[ii][0] - Xv[0]) + (landmarks[ii][1] - Xv[1])*(landmarks[ii][1] - Xv[1]));
                 
                 if(z[0] <= SENSOR_RANGE_MAX && z[0] > SENSOR_RANGE_MIN && abs(z[1]) <= SENSOR_ANGLE_MAX) {
@@ -625,9 +635,11 @@ namespace engine_test {
     }
     
     int full_slam_engine_test(int argc, char **argv) {
+		SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 1e100;
+		
         //real vehicle position
         VectorType Xv(3);
-        Xv << state_pos_noise(eng_state), state_pos_noise(eng_state), state_ang_noise(eng_state);
+        Xv << 0.0, 0.0, 0.0;
         
         ofstream out_Xv("/tmp/Xv.dat");
         ofstream out_XvE("/tmp/XvE.dat");
@@ -655,6 +667,10 @@ namespace engine_test {
         Xm << 0, -10;
         landmarks.push_back(Xm);
         real_Xm << Xm.transpose() << " ";
+		
+		Xm << 10, 0;
+		landmarks.push_back(Xm);
+		real_Xm << Xm.transpose() << " ";
         
 		MatrixType R(2, 2);
 		//         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
@@ -669,7 +685,7 @@ namespace engine_test {
         //the SLAM engine
         EKFSLAMEngine se;
         //setup the state model
-        se.Setup(Vector3d(0, 0, 0), Q, VM);
+        se.Setup(Vector3d(0, 0, 0), Q, Models::SimpleUnicycleModel);
         cout << "Initial estimated Xv: " << se.GetStateEstimation().transpose() << endl;
         
         ///PLOTTING SCRIPT
@@ -718,14 +734,15 @@ namespace engine_test {
                 
                 if(distance <= SENSOR_RANGE_MAX && distance > 0.05) {
                     //check if the landmarks ii has been seen before
-                    observations.push_back(Observation(Observation_generator(Xv, landmarks[ii]), R, LPM, LIM));
+// 					observations.push_back(Observation(Observation_generator(Xv, landmarks[ii]), R, LPM, LIM));
+					observations.push_back(Observation(Observation_generator(Xv, landmarks[ii]), R, Models::PolarPointLandmarkModel));
                 }
             }
             
 //             if(!percs.empty()) {
 //                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
 //             }
-            se.Update(observations);
+            se.Update(observations, Association::SequentialDataAssociation);
             cout << "Landmark perceived: " << observations.size() << endl;
             cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
             cout << "Real Xv: " << Xv.transpose() << endl;

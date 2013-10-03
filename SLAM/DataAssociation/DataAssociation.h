@@ -16,15 +16,19 @@
 namespace SLAM {
     ////TYPE FORWARDING
     class EKFSLAMEngine;
+	
+	namespace Association {
     
     ////PROTOTYPES
-    namespace BasicDataAssociationConstants {
+    namespace BasicDataAssociationParams {
         extern ScalarType DistanceThreshold;
     }
     std::vector<LandmarkAssociation> BasicDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
 	
-    namespace SequentialDataAssociationContants {
+    namespace SequentialDataAssociationParams {
         extern ScalarType DistanceThreshold;
     }
 	std::vector<LandmarkAssociation> SequentialDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
+	
+	}
 }

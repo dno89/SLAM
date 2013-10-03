@@ -18,13 +18,14 @@
 #include <iterator>
 
 using namespace SLAM;
+using namespace SLAM::Association;
 using namespace std;
 
 IMPORT_DEBUG_LOG()
 
 //BASIC DATA ASSOCIATION
-ScalarType SLAM::BasicDataAssociationConstants::DistanceThreshold = 2.0;
-std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Observation>& observations, const EKFSLAMEngine& se) {
+ScalarType SLAM::Association::BasicDataAssociationParams::DistanceThreshold = 2.0;
+std::vector<LandmarkAssociation> SLAM::Association::BasicDataAssociation(const std::vector<Observation>& observations, const EKFSLAMEngine& se) {
     DOPEN_CONTEXT("BasicDataAssociation")
 #ifndef NDEBUG
     auto t_start = chrono::high_resolution_clock::now();
@@ -50,7 +51,7 @@ std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Ob
             
             double d = DefaultDistance(observations[ii].Z, l.Model.H(se.GetStateEstimation())).norm();
             
-            if(d < BasicDataAssociationConstants::DistanceThreshold && d < min_distance) {
+            if(d < BasicDataAssociationParams::DistanceThreshold && d < min_distance) {
                 min_distance = d;
                 min_index = jj;
             }
@@ -79,8 +80,10 @@ std::vector<LandmarkAssociation> SLAM::BasicDataAssociation(const std::vector<Ob
 
 ////SEQUENTIAL DATA ASSOCIATION
 ///TODO: DEBUG THIS!!! FIXME FIXME
-ScalarType SequentialDataAssociationContants::DistanceThreshold = 2.0;
-vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observation>& observations, const EKFSLAMEngine& se) {
+ScalarType SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
+vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const vector<Observation>& observations, const EKFSLAMEngine& se) {
+	DOPEN_CONTEXT("SequentialDataAssociation")
+	
 	////typedef
 // 	typedef VectorType ValueType;
 	typedef SequentialAssociator<VectorType, VectorType, ScalarType> SAType;
@@ -109,64 +112,111 @@ vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observa
 	
 	//observations group and landmarks group must be sorted (Required by sequential associator)
 	//sort observation
+	DPRINT("Sorting of observations group")
 	for(auto it = observation_groups.begin(); it != observation_groups.end(); ++it) {
         const LandmarkPerceptionModel& lm = it->first;
         
+// #ifndef NDEBUG
+// 		DPRINT("Before Sorting")
+// 		for(int kk = 0; kk < observation_groups[lm].size(); ++kk) {
+// 			DPRINT(kk << ": (" << observation_groups[lm][kk].first.transpose() << ") - " << observation_groups[lm][kk].second)
+// 		}
+// #endif
+		
         //sort
         sort(it->second.begin(), it->second.end(), [&lm](const MapType::mapped_type::value_type& v1, const MapType::mapped_type::value_type& v2){return lm.Sort(v1.first, v2.first);});
+		
+#ifndef NDEBUG
+// 		DPRINT("After Sorting")
+		for(int kk = 0; kk < observation_groups[lm].size(); ++kk) {
+			DPRINT(kk << ": (" << observation_groups[lm][kk].first.transpose() << ") - " << observation_groups[lm][kk].second)
+		}
+#endif
     }
+    
     //sort landmark observation
+    DPRINT("Landmark estimation sorting")
     for(auto it = landmark_groups.begin(); it != landmark_groups.end(); ++it) {
         const LandmarkPerceptionModel& lm = it->first;
         
+// #ifndef NDEBUG
+// 		DPRINT("Before Sorting")
+// 		for(int kk = 0; kk < landmark_groups[lm].size(); ++kk) {
+// 			DPRINT(kk << ": (" << landmark_groups[lm][kk].first.transpose() << ") - " << landmark_groups[lm][kk].second )
+// 		}
+// #endif
         //sort
         sort(it->second.begin(), it->second.end(), [&lm](const MapType::mapped_type::value_type& v1, const MapType::mapped_type::value_type& v2){return lm.Sort(v1.first, v2.first);});
+		
+#ifndef NDEBUG
+// 		DPRINT("After sorting")
+		for(int kk = 0; kk < landmark_groups[lm].size(); ++kk) {
+			DPRINT(kk << ": (" << landmark_groups[lm][kk].first.transpose() << ") - " << landmark_groups[lm][kk].second)
+		}
+#endif
     }
 	
 	//now iterate over each observation group
 	for(auto it = observation_groups.begin(); it != observation_groups.end(); ++it) {
 		const LandmarkPerceptionModel& lm = it->first;
+		
+		//the association for this subgroup
+		vector<LandmarkAssociation> sub_ret(observation_groups[lm].size());
+		//set the correct observation index in the sub return
+		for(int ii = 0; ii < sub_ret.size(); ++ii) {
+			sub_ret[ii].ObservationIndex = observation_groups[lm][ii].second;
+		}
         
-		if(!landmark_groups.count(lm)) {
-			//there are not tracked landmarks of this type
-            continue;
+		if(landmark_groups.count(lm)) {
+		
+			//lambdas to wrap the return type of the distance function and take the norm
+			SAType sa([&lm](const SAType::Value1& v1, const SAType::Value2& v2){ return lm.Distance(v1, v2).norm();});
+			
+// 			DPRINT("The observation are: ")
+			//create the observation subgroup
+			vector<VectorType> observations_Z;
+			for(auto p : observation_groups[lm]) {
+				observations_Z.push_back(p.first);
+// 				DPRINT(observations_Z.back().transpose())
+			}
+			
+// 			DPRINT("The landmarks are: ")
+			//create the landmark subgroup
+			vector<VectorType> landmarks_Z;
+			for(auto p : landmark_groups[lm]) {
+				landmarks_Z.push_back(p.first);
+// 				DPRINT(landmarks_Z.back().transpose())
+			}
+		
+			//make the association
+			SAType::AssociationVector av;
+			sa.associate(observations_Z, landmarks_Z, av);
+			
+			DPRINT("The sequential association found are:")
+			for(auto ip : av) {
+				int tmp_ob_index = ip.first;
+				int tmp_lm_index = ip.second;
+				
+				DPRINT(ip.first << " - " << ip.second)
+				
+				//distance threshold
+				if(lm.Distance(observations_Z[tmp_ob_index], landmarks_Z[tmp_lm_index]).norm() < SequentialDataAssociationParams::DistanceThreshold) {
+					//accept this association
+					int real_lm_index = landmark_groups[lm][tmp_lm_index].second;
+					sub_ret[tmp_ob_index].LandmarkIndex = real_lm_index;
+				} else {
+					DWARNING("Association discarded because the distance (" << lm.Distance(observations_Z[tmp_ob_index], landmarks_Z[tmp_lm_index]).norm() << ") is greater than threshold")
+				}
+			}
 		}
 		
-		//lambdas to wrap the return type of the distance function and take the norm
-		SAType se([&lm](const SAType::Value1& v1, const SAType::Value2& v2){ return lm.Distance(v1, v2).norm();});
-		
-        //create the observation subgroup
-        vector<VectorType> observations_Z;
-        for(auto p : observation_groups[lm]) {
-            observations_Z.push_back(p.first);
-        }
-		//create the landmark subgroup
-		vector<VectorType> landmarks_Z;
-        for(auto p : landmark_groups[lm]) {
-            landmarks_Z.push_back(p.first);
-        }
-		
-		//make the association
-		SAType::AssociationVector av;
-		se.associate(observations_Z, landmarks_Z, av);
-        
-        vector<LandmarkAssociation> sub_ret(observation_groups[lm].size());
-        //set the correct observation index in the sub return
-        for(int ii = 0; ii < sub_ret.size(); ++ii) {
-            sub_ret[ii].ObservationIndex = observation_groups[lm][ii].second;
-        }
-        
-        for(auto ip : av) {
-            int tmp_ob_index = ip.first;
-            int tmp_lm_index = ip.second;
-            
-            //distance threshold
-            if(lm.Distance(observations_Z[tmp_ob_index], landmarks_Z[tmp_lm_index]).norm() < SequentialDataAssociationContants::DistanceThreshold) {
-                //accept this association
-                int real_lm_index = landmark_groups[lm][tmp_lm_index].second;
-                sub_ret[tmp_ob_index].LandmarkIndex = real_lm_index;
-            }
-        }
+#ifndef NDEBUG
+		DPRINT("The final associations are: ")
+		for(int ii = 0; ii < sub_ret.size(); ++ii) {
+			DLOG() << "(" << sub_ret[ii].ObservationIndex << ", " << sub_ret[ii].LandmarkIndex << "), ";
+		}
+		DLOG() << endl;
+#endif
         
         //add the sub_ret to the total return
         copy(sub_ret.begin(), sub_ret.end(), back_inserter(ret));
@@ -177,6 +227,8 @@ vector<LandmarkAssociation> SLAM::SequentialDataAssociation(const vector<Observa
 	 * Bisogna inserire nel LandmarkModel un puntatore ad una funzione di ordinamento per le percezioni.
 	 * Usando quella funzione bisogna ordinare i vector dei vari sottogruppi, ordinando allo stesso modo anche i vector che mantengono gli indici originali. Per fare le 2 cose insieme si potrebbero usare mappe di vector di coppie <VectorType, int> in modo da spostare tutti gli elementi insieme
 	 */
+	
+	DCLOSE_CONTEXT("SequentialDataAssociation")
     
     return ret;
 }
