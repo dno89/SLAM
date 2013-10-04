@@ -60,7 +60,7 @@ namespace SLAM {
          * @p observations vector containing the raw observation and their covariance
          * @p AF the association function
          */
-        void Update(const std::vector<Observation>& observations, AssociationFunction AF = Association::BasicDataAssociation);
+        void Update(const std::vector<Observation>& observations, AssociationFunction AF = Association::GreedyDataAssociation);
         
         /**
          * @brief add a new landmark to the tracked list

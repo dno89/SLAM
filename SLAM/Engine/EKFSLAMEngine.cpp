@@ -28,34 +28,41 @@ using namespace Eigen;
 ofstream dl_update("/tmp/Xupdate.dat");
 ofstream dl_uncertainty("/tmp/Xuncertainty.dat");
 
+#ifdef  EKFSLAM_ENABLE_TEST
+static unsigned int iteration_count = 0;
+#endif  //EKFSLAM_ENABLE_TEST
+
 EKFSLAMEngine::EKFSLAMEngine() {}
 
 void EKFSLAMEngine::Setup(const VectorType& initial_state_estimation, const MatrixType& initial_covariance_estimation, const VehicleModel& vehicle_model) {
-            DOPEN_CONTEXT("Setup")
-            
-            //set the size
-            m_XvSize = initial_state_estimation.rows();
-            
-            //set the remainig parameters with some debug assertions
-            assert(initial_state_estimation.rows() == m_XvSize);
-            m_Xv = initial_state_estimation;
-            
-            DPRINT("State initial estimation " << m_Xv.transpose())
-            
-            assert(initial_covariance_estimation.cols() == m_XvSize && initial_covariance_estimation.rows() == m_XvSize);
-            m_Pvv = initial_covariance_estimation;
-            
-            DTRACE_L(m_Pvv)
-            
-            assert(vehicle_model);
-            m_vModel = vehicle_model;
-            
-            DCLOSE_CONTEXT("Setup")
-            
-            m_init = true;
+        DOPEN_CONTEXT("Setup")
+        
+        //set the size
+        m_XvSize = initial_state_estimation.rows();
+        
+        //set the remainig parameters with some debug assertions
+        assert(initial_state_estimation.rows() == m_XvSize);
+        m_Xv = initial_state_estimation;
+        
+        DPRINT("State initial estimation " << m_Xv.transpose())
+        
+        assert(initial_covariance_estimation.cols() == m_XvSize && initial_covariance_estimation.rows() == m_XvSize);
+        m_Pvv = initial_covariance_estimation;
+        
+        DTRACE_L(m_Pvv)
+        
+        assert(vehicle_model);
+        m_vModel = vehicle_model;
+        
+        DCLOSE_CONTEXT("Setup")
+        
+        m_init = true;
 }
 
 void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
+#ifdef EKFSLAM_ENABLE_TEST
+    DINFO("** ITERATION " << iteration_count++ << " **")
+#endif  //EKFSLAM_ENABLE_TEST
     DOPEN_CONTEXT("Predict")
 #ifndef NDEBUG
     auto t_start = chrono::high_resolution_clock::now();
@@ -82,8 +89,7 @@ void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
     //Pvv
 //     DTRACE_L(df_dXv)
 //     DTRACE_L(m_Pvv)
-    ///FIXME
-    m_Pvv = (df_dXv * m_Pvv * df_dXv.transpose() + Q).eval();
+    m_Pvv = df_dXv * m_Pvv * df_dXv.transpose() + Q;
     
     assert(m_Pvv.cols() == m_XvSize && m_Pvv.rows() == m_XvSize);            
     DPRINT("after prediction:\n" << m_Pvv)
@@ -134,7 +140,7 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
         
 //         std_ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
         
-        ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Distance(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
+        ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Difference(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
     }
 //     DTRACE_L(std_ni)
 //     DTRACE_L(ni)
@@ -250,6 +256,13 @@ void EKFSLAMEngine::Update(const std::vector<Observation>& observations, Associa
 #ifndef NDEBUG
     auto t_start = chrono::high_resolution_clock::now();
 #endif  //NDEBUG
+    
+    if(observations.empty()) {
+        DWARNING("Empty observations")
+        DCLOSE_CONTEXT("Update")
+        
+        return;
+    }
     
     std::vector<LandmarkAssociation> assoc = (*AF)(observations, *this);
     

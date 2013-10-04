@@ -220,9 +220,10 @@ namespace engine_test {
 //     static const double observation_sigma = 0.01;
 
     static const double state_pos_sigma = 0.01;
-    static const double state_ang_sigma = 0.005;
+    static const double state_ang_sigma = 0.0005;
 	static const double observation_rho_sigma = 0.01;
-	static const double observation_alpha_sigma = 0.004;
+    static const double observation_alpha_sigma = 0.004;
+// 	static const double observation_alpha_sigma = 0.000;
     
 //     static const double state_pos_sigma = 0.001;
 //     static const double state_ang_sigma = 0.001;
@@ -461,7 +462,7 @@ namespace engine_test {
     static const int LANDMARK_NUMBER = 60;
     static const double SENSOR_RANGE_MAX = 70;
     static const double SENSOR_RANGE_MIN = 0.05;
-    static const double SENSOR_ANGLE_MAX = 2.1*M_PI;
+    static const double SENSOR_ANGLE_MAX = M_PI/2.0;
     static default_random_engine lre(1);
     static uniform_int_distribution<int> un_x(-50, 500);
     static uniform_int_distribution<int> un_y(-100, 50);
@@ -575,7 +576,7 @@ namespace engine_test {
             std::vector<int> toAdd;
             for(int jj = 0; jj < landmarks.size(); ++jj) {
                 //check if the robot sees the landmark ii
-                Vector2d z = Models::PolarPointLandmark::H(Xv, landmarks[jj]);
+                Vector2d z = Models::PolarPointLandmark::Normalize(Models::PolarPointLandmark::H(Xv, landmarks[jj]));
 //                 double distance = sqrt((landmarks[ii][0] - Xv[0])*(landmarks[ii][0] - Xv[0]) + (landmarks[ii][1] - Xv[1])*(landmarks[ii][1] - Xv[1]));
                 
                 if(z[0] <= SENSOR_RANGE_MAX && z[0] > SENSOR_RANGE_MIN && abs(z[1]) <= SENSOR_ANGLE_MAX) {
@@ -635,7 +636,9 @@ namespace engine_test {
     }
     
     int full_slam_engine_test(int argc, char **argv) {
-		SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 1e100;
+        const double observation_alpha_sigma = 0.004;
+        
+		SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 5.0;
 		
         //real vehicle position
         VectorType Xv(3);
@@ -668,9 +671,10 @@ namespace engine_test {
         landmarks.push_back(Xm);
         real_Xm << Xm.transpose() << " ";
 		
-		Xm << 10, 0;
+		Xm << 30, 0;
 		landmarks.push_back(Xm);
 		real_Xm << Xm.transpose() << " ";
+        real_Xm.close();
         
 		MatrixType R(2, 2);
 		//         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
@@ -690,7 +694,8 @@ namespace engine_test {
         
         ///PLOTTING SCRIPT
         strstream script;
-        script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\nunset colorbox\n";
+//      script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\nunset colorbox\n";
+        script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\n";
         for(int ii = 0; ii < landmarks.size(); ++ii) {
             script << "count" << ii << " = 0\n";
         }
@@ -728,14 +733,15 @@ namespace engine_test {
             
             ///SECTION: perceptions
             std::vector<Observation> observations;
-            for(int ii = 0; ii < landmarks.size(); ++ii) {
+            for(int jj = 0; jj < landmarks.size(); ++jj) {
                 //check if the robot sees the landmark ii
-                double distance = sqrt((landmarks[ii][0] - Xv[0])*(landmarks[ii][0] - Xv[0]) + (landmarks[ii][1] - Xv[1])*(landmarks[ii][1] - Xv[1]));
+                Vector2d z = Models::PolarPointLandmark::Normalize(Models::PolarPointLandmark::H(Xv, landmarks[jj]));
+//                 double distance = sqrt((landmarks[ii][0] - Xv[0])*(landmarks[ii][0] - Xv[0]) + (landmarks[ii][1] - Xv[1])*(landmarks[ii][1] - Xv[1]));
                 
-                if(distance <= SENSOR_RANGE_MAX && distance > 0.05) {
+                if(z[0] <= SENSOR_RANGE_MAX && z[0] > SENSOR_RANGE_MIN && abs(z[1]) <= SENSOR_ANGLE_MAX) {
                     //check if the landmarks ii has been seen before
 // 					observations.push_back(Observation(Observation_generator(Xv, landmarks[ii]), R, LPM, LIM));
-					observations.push_back(Observation(Observation_generator(Xv, landmarks[ii]), R, Models::PolarPointLandmarkModel));
+					observations.push_back(Observation(Observation_generator(Xv, landmarks[jj]), R, Models::PolarPointLandmarkModel));
                 }
             }
             

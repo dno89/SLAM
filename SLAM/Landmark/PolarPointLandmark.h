@@ -27,9 +27,11 @@ namespace SLAM { namespace Models { namespace PolarPointLandmark {
     VectorType G(const VectorType& Xv, const VectorType& Z);
     MatrixType dG_dXv(const VectorType& Xv, const VectorType& Z);
     MatrixType dG_dZ(const VectorType& Xv, const VectorType& Z);
-    ////distance and sorting
-    VectorType PolarPointLandmarkDistance(const VectorType& z1, const VectorType& z2);
+    ////distance, sorting and normalization
+    VectorType Difference(const VectorType& z1, const VectorType& z2);
+    ScalarType Distance(const VectorType& z1, const VectorType& z2);
     bool Sort(const VectorType& z1, const VectorType& z2);
+    VectorType Normalize(const VectorType& z);
     
 }
     ////model

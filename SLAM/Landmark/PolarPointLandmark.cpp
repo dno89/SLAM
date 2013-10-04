@@ -70,7 +70,7 @@ MatrixType SLAM::Models::PolarPointLandmark::dG_dZ(const VectorType& Xv, const V
     return J;
 }
 
-VectorType SLAM::Models::PolarPointLandmark::PolarPointLandmarkDistance(const VectorType& z1, const VectorType& z2) {
+VectorType SLAM::Models::PolarPointLandmark::Difference(const VectorType& z1, const VectorType& z2) {
 //         cout << ">> PointLandmarkDistance called with z1: " << z1.transpose() << ", z2: " << z2.transpose() << endl;
     static const double PI2 = 2*M_PI;
     VectorType res(2);
@@ -108,8 +108,24 @@ VectorType SLAM::Models::PolarPointLandmark::PolarPointLandmarkDistance(const Ve
     return res;
 }
 
+ScalarType SLAM::Models::PolarPointLandmark::Distance(const VectorType& z1, const VectorType& z2) {
+    VectorType diff(SLAM::Models::PolarPointLandmark::Difference(z1, z2));
+    return sqrt(0.7*diff(0)*diff(0) + 0.3*diff(1)*diff(1));
+}
+
 bool Models::PolarPointLandmark::Sort ( const SLAM::VectorType& z1, const SLAM::VectorType& z2 ) {
     return z1[1] < z2[1];
 }
 
-const LandmarkModel SLAM::Models::PolarPointLandmarkModel(LandmarkPerceptionModel(PolarPointLandmark::H, PolarPointLandmark::dH_dXv, PolarPointLandmark::dH_dXm, PolarPointLandmark::PolarPointLandmarkDistance, PolarPointLandmark::Sort), LandmarkInitializationModel(PolarPointLandmark::G, PolarPointLandmark::dG_dXv, PolarPointLandmark::dG_dZ));
+VectorType SLAM::Models::PolarPointLandmark::Normalize(const VectorType& z) {
+//         cout << ">> PointLandmarkDistance called with z1: " << z1.transpose() << ", z2: " << z2.transpose() << endl;
+    static const double PI2 = 2*M_PI;
+    VectorType res(z);
+    
+    while(res(1) < -M_PI) res(1) += PI2;
+    while(res(1) > M_PI) res(1) -= PI2;
+    
+    return res;
+}
+
+const LandmarkModel SLAM::Models::PolarPointLandmarkModel(LandmarkPerceptionModel(PolarPointLandmark::H, PolarPointLandmark::dH_dXv, PolarPointLandmark::dH_dXm, PolarPointLandmark::Difference, PolarPointLandmark::Distance, PolarPointLandmark::Sort, PolarPointLandmark::Normalize), LandmarkInitializationModel(PolarPointLandmark::G, PolarPointLandmark::dG_dXv, PolarPointLandmark::dG_dZ));

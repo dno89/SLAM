@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.0)
 
-add_definitions(-std=c++0x)
+add_definitions(-std=c++0x -DEKFSLAM_ENABLE_TEST)
 
 add_library(slam STATIC Engine/EKFSLAMEngine.cpp DataAssociation/DataAssociation.cpp Base/core.cpp Vehicle/SimpleUnicycle.cpp Landmark/PolarPointLandmark.cpp)
 

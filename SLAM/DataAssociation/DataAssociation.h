@@ -20,10 +20,10 @@ namespace SLAM {
 	namespace Association {
     
     ////PROTOTYPES
-    namespace BasicDataAssociationParams {
+    namespace GreedyDataAssociationParams {
         extern ScalarType DistanceThreshold;
     }
-    std::vector<LandmarkAssociation> BasicDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
+    std::vector<LandmarkAssociation> GreedyDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
 	
     namespace SequentialDataAssociationParams {
         extern ScalarType DistanceThreshold;
