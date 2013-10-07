@@ -152,20 +152,25 @@ int hungarian_test(int argc, char **argv) {
     std::cout << "Hungarian test" << std::endl;
     
     int** cost_matrix = new int*[2];
-    cost_matrix[0] = new int[3]{0, 9, 21};
-    cost_matrix[1] = new int[3]{4, 0, 16};
+    cost_matrix[0] = new int[3]{1, 2, 3};
+    cost_matrix[1] = new int[3]{4, 5, 1};
     for(int ii = 0; ii < 2; ++ii) {
         for(int jj = 0; jj < 3; ++jj) {
-            cout << "cost_matrix[" << ii << "][" << jj << "] = " << cost_matrix[ii][jj] << endl;
+//             cout << "cost_matrix[" << ii << "][" << jj << "] = " << cost_matrix[ii][jj] << endl;
+			cout << cost_matrix[ii][jj] << " ";
         }
+        cout << endl;
     }
+// 	int cost_matrix[2][3] = {{1, 2, 3}, {4, 5, 6}};
     
-    hungarian_t h;
-    hungarian_init(&h, cost_matrix, 2, 3, HUNGARIAN_MAX);
-//     hungarian_print_costmatrix(hp);
+    hungarian_problem_t h;
+	hungarian_init(&h, cost_matrix, 2, 3, HUNGARIAN_MODE_MINIMIZE_COST);
+//     hungarian_print_costmatrix(&h);
     hungarian_solve(&h);
-    hungarian_print_assignment(&h);
-    hungarian_fini(&h);
+// 	hungarian_print_assignment(&h);
+	hungarian_print_status(&h);
+	hungarian_free(&h);
+// 	hungarian_fini(&h);
     
     return 0;
 }
