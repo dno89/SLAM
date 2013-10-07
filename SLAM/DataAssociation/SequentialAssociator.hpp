@@ -8,6 +8,10 @@
 
 #include <Eigen/Dense>
 
+#include "../Base/DMDebug.h"
+
+IMPORT_DEBUG_LOG()
+
 #define ITERATOR_POS(IT,BEG,N) do { (IT)=(BEG); std::advance((IT),(N)); }while(0)
 
 template<typename T1,typename T2, typename D>
@@ -32,6 +36,11 @@ public:
   { 
     assert(nmax >= 0);
   }
+  
+  const Matrix& getDistanceMatrix() const
+  {
+    return distances;
+  }
 
   void associate(const ValueVector1& v1,const ValueVector2& v2,
                  AssociationVector& associations);
@@ -39,7 +48,7 @@ public:
   template <typename It1,typename It2>
   void associate(It1 beg1,It1 end1,It2 beg2,It2 end2,
                  std::vector<std::pair<It1,It2> >& associations);
-
+  
 protected:
   Metric metric;
   Matrix distances;
@@ -115,49 +124,75 @@ void SequentialAssociator<T1,T2,D>::associate(const ValueVector1& v1,const Value
         minBest = metric(v1[r],v2[c]);
       }
     }
-//    std::cout << "row " << r << ", col " << c <<"; value v1 " << v1[r] << " v2 " << v2[c] << ", cost " << distances(r,c) 
-//      << ", values " << v1[r] << ":" << v2[c] << std::endl;
+   DLOG() << "row " << r << ", col " << c <<"; value v1 " << v1[r] << " v2 " << v2[c] << ", cost " << distances(r,c) 
+     << ", values " << v1[r] << ":" << v2[c] << std::endl;
     // Updates the row/col indices r and c toward the minimum between 
     // cells (r-1,c), (r,c-1) and (r-1,c-1)
     rprev = r;
     cprev = c;
-    minDist = distances(r,c);
-//    std::cout << " current minDist " << minDist << std::endl;
-    if (rprev > 0 && distances(rprev-1,cprev) <= minDist) {
-      r = rprev - 1;
-      minDist = distances(rprev-1,cprev);
-    }
-    else if (rprev == 0 && cprev > 0) {
-      c = cprev - 1;
-    }
-//    (rprev > 0) && std::cout << " row up " << (rprev-1) << "," << cprev << " cost " << distances(rprev-1,cprev) << ", new cost" << minDist << std::endl;
-    if (cprev > 0 && 
-        (distances(rprev,cprev-1) < minDist ||
-         (distances(rprev,cprev-1) == minDist && 
-          ((r == rprev && c == cprev) || metric(v1[rprev],v2[cprev-1]) <= metric(v1[r],v2[c]))
-         )
-        )
-       )
-    {
-      c = cprev - 1;
-      minDist = distances(rprev,cprev-1);
-    }
-    else if (cprev == 0 && rprev > 0) {
-      r = rprev - 1;
-    }
-//    (cprev > 0) && std::cout << " col up " << rprev << "," << (cprev-1) << " cost " << distances(rprev,cprev-1) << ", new cost" << minDist << std::endl;
-    if (rprev > 0 && cprev > 0 && 
-        (distances(rprev-1,cprev-1) < minDist ||
-         (distances(rprev-1,cprev-1) == minDist && 
-          ((r == rprev && c == cprev) || metric(v1[rprev-1],v2[cprev-1]) <= metric(v1[r],v2[c]))
-         )
-        )
-       )
-    {
-      r = rprev - 1;
-      c = cprev - 1;
-      minDist = distances(rprev-1,cprev-1); 
-    }
+	if (rprev == 0 && cprev > 0) {
+      r = rprev;
+	  c = cprev - 1;
+	}
+	else if (rprev > 0 && cprev == 0) {
+	  r = rprev - 1;
+	  c = cprev;
+	}
+	else if (rprev > 0 && cprev > 0) {
+	  minDist = distances(rprev,cprev);
+	  if (distances(rprev-1,cprev) <= minDist) {
+        r = rprev - 1;
+		c = cprev;
+	  }
+	  else if (distances(rprev,cprev-1) <= minDist) {
+		r = rprev;
+		c = cprev - 1;
+	  }
+	  else if (distances(rprev-1,cprev-1) <= minDist) {
+		r = rprev - 1;
+		c = cprev - 1;
+	  }
+	  else {
+		assert(0);
+	  }
+	}
+//     minDist = distances(r,c);
+// //    std::cout << " current minDist " << minDist << std::endl;
+//     if (rprev > 0 && distances(rprev-1,cprev) <= minDist) {
+//       r = rprev - 1;
+//       minDist = distances(rprev-1,cprev);
+//     }
+//     else if (rprev == 0 && cprev > 0) {
+//       c = cprev - 1;
+//     }
+// //    (rprev > 0) && std::cout << " row up " << (rprev-1) << "," << cprev << " cost " << distances(rprev-1,cprev) << ", new cost" << minDist << std::endl;
+//     if (cprev > 0 && 
+//         (distances(rprev,cprev-1) < minDist ||
+//          (distances(rprev,cprev-1) == minDist && 
+//           ((r == rprev && c == cprev) || metric(v1[rprev],v2[cprev-1]) <= metric(v1[r],v2[c]))
+//          )
+//         )
+//        )
+//     {
+//       c = cprev - 1;
+//       minDist = distances(rprev,cprev-1);
+//     }
+//     else if (cprev == 0 && rprev > 0) {
+//       r = rprev - 1;
+//     }
+// //    (cprev > 0) && std::cout << " col up " << rprev << "," << (cprev-1) << " cost " << distances(rprev,cprev-1) << ", new cost" << minDist << std::endl;
+//     if (rprev > 0 && cprev > 0 && 
+//         (distances(rprev-1,cprev-1) < minDist ||
+//          (distances(rprev-1,cprev-1) == minDist && 
+//           ((r == rprev && c == cprev) || metric(v1[rprev-1],v2[cprev-1]) <= metric(v1[r],v2[c]))
+//          )
+//         )
+//        )
+//     {
+//       r = rprev - 1;
+//       c = cprev - 1;
+//       minDist = distances(rprev-1,cprev-1); 
+//     }
 //    (rprev > 0 && cprev > 0) && std::cout << " diag " << (rprev-1) << "," << (cprev-1) << " cost " << distances(rprev-1,cprev-1) << ", new cost" << minDist << std::endl;
 //    std::cout << " *** move from " << rprev << "," << cprev << " to " << r << "," << c << std::endl;
   } 
@@ -167,11 +202,11 @@ void SequentialAssociator<T1,T2,D>::associate(const ValueVector1& v1,const Value
 //     << "; rbest " << rbest << ", cbest " << cbest << " v1 " << v1[rbest] << " v2 " << v2[cbest]
 //     << "; best cost " << distances(rbest,cbest) << std::endl;
   if (multipleAssociationOn) {
-//    std::cout << "row " << r << ", col " << c << ", values " << v1[r] << ":" << v2[c] << " END" << std::endl;
+	DLOG() << "row " << r << ", col " << c << ", values " << v1[r] << ":" << v2[c] << " END" << std::endl;
     associations.push_back(std::make_pair(r,c));
   }
   else {
-//    std::cout << "row " << rbest << ", col " << cbest << ", cost " << distances(rbest,cbest) << std::endl;
+    DLOG() << "row " << rbest << ", col " << cbest << ", cost " << distances(rbest,cbest) << std::endl;
 //    associations.push_back(std::make_pair(rbest,cbest));
      if (r != rprev && c != cprev) {
 //        std::cout << "  rbest " << rbest << ", cbest " << cbest << ", values " << v1[rbest] << ":" << v2[cbest] << "\n";
@@ -189,6 +224,7 @@ void SequentialAssociator<T1,T2,D>::associate(const ValueVector1& v1,const Value
      associations.push_back(std::make_pair(rbest,cbest));
   }
   std::reverse(associations.begin(),associations.end());
+  DLOG() << "association vector contains " << associations.size() << " associations" << std::endl;
 }
 
 // --------------------------------------------------------

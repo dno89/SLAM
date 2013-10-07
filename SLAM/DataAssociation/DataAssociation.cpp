@@ -22,7 +22,8 @@ using namespace SLAM::Models;
 using namespace SLAM::Association;
 using namespace std;
 
-IMPORT_DEBUG_LOG()
+///FIXME
+// IMPORT_DEBUG_LOG()
 
 ////GREEDY DATA ASSOCIATION
 ScalarType SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
@@ -296,7 +297,7 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
 //                 DINFO("The distance between v1: (" << v1.transpose() << ") and v2: (" << v2.transpose() << ") is " << lm.Distance(v1, v2).norm())
 //                 return lm.Distance(v1, v2).norm();
 //             });
-            SAType sa([&lm](const SAType::Value1& v1, const SAType::Value2& v2){return lm.Distance(v1, v2);});
+            SAType sa([&lm](const SAType::Value1& v1, const SAType::Value2& v2){return lm.Distance(v1, v2);}, false);
 			
 // 			DPRINT("The observation are: ")
 			//create the observation subgroup
@@ -317,6 +318,8 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
 			//make the association
 			SAType::AssociationVector av;
 			sa.associate(observations_Z, landmarks_Z, av);
+			
+			DTRACE_L(sa.getDistanceMatrix())
 			
 			DPRINT("The sequential association found are:")
 			for(auto ip : av) {
