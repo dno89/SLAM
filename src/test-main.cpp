@@ -12,6 +12,9 @@
 #include "../SLAM/SLAM.h"
 #include "../SLAM/Vehicle/SimpleUnicycle.h"
 #include "../SLAM/Landmark/PolarPointLandmark.h"
+extern "C" {
+#include "../SLAM/DataAssociation/hungarian.h"
+}
 //Eigen
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
@@ -145,6 +148,28 @@ int base_test(int argc, char **argv) {
     return 0;
 }
 
+int hungarian_test(int argc, char **argv) {
+    std::cout << "Hungarian test" << std::endl;
+    
+    int** cost_matrix = new int*[2];
+    cost_matrix[0] = new int[3]{0, 9, 21};
+    cost_matrix[1] = new int[3]{4, 0, 16};
+    for(int ii = 0; ii < 2; ++ii) {
+        for(int jj = 0; jj < 3; ++jj) {
+            cout << "cost_matrix[" << ii << "][" << jj << "] = " << cost_matrix[ii][jj] << endl;
+        }
+    }
+    
+    hungarian_t h;
+    hungarian_init(&h, cost_matrix, 2, 3, HUNGARIAN_MAX);
+//     hungarian_print_costmatrix(hp);
+    hungarian_solve(&h);
+    hungarian_print_assignment(&h);
+    hungarian_fini(&h);
+    
+    return 0;
+}
+
 int speed_test(int argc, char **argv) {
     std::cout << "Eigen speed test: dense vs sparse matrices" << std::endl;
     
@@ -220,7 +245,7 @@ namespace engine_test {
 //     static const double observation_sigma = 0.01;
 
     static const double state_pos_sigma = 0.01;
-    static const double state_ang_sigma = 0.0005;
+    static const double state_ang_sigma = 0.001;
 	static const double observation_rho_sigma = 0.01;
     static const double observation_alpha_sigma = 0.004;
 // 	static const double observation_alpha_sigma = 0.000;
@@ -787,6 +812,7 @@ void register_function(std::string name, TestFunction fn_ptr) {
 }
 void RegisterFunctions() {
     register_function("base_test",          base_test);
+    register_function("hungarian_test",     hungarian_test);
     register_function("speed_test",         speed_test);
     register_function("slam_test",          engine_test::slam_engine_test);
     register_function("full_slam_test",     engine_test::full_slam_engine_test);

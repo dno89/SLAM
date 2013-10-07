@@ -23,12 +23,23 @@ namespace SLAM {
     namespace GreedyDataAssociationParams {
         extern ScalarType DistanceThreshold;
     }
-    std::vector<LandmarkAssociation> GreedyDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
+    /**
+     * @brief a sample function that make the association of feature perceived and perception associated with the estimated landmark position
+     * @p observations a vector of observation according to the @struct Observation
+     * @p se a reference to the current SLAMEngine
+     * @return a vector containg pair of indexes. The indexes refere to the position of observation in @p observations and the index of the landmark in @p se
+     */
+    std::vector<LandmarkAssociation> GreedyDataAssociation(const std::vector<Observation>& observations, const EKFSLAMEngine& se);
 	
     namespace SequentialDataAssociationParams {
         extern ScalarType DistanceThreshold;
     }
+    ///FIXME: BUGGED
 	std::vector<LandmarkAssociation> SequentialDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
 	
+    namespace HungarianDataAssociationParams {
+    }
+    std::vector<LandmarkAssociation> HungarianDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
+    
 	}
 }
