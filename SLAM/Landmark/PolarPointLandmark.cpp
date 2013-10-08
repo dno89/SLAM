@@ -7,8 +7,11 @@
 ////include
 //SLAM
 #include "PolarPointLandmark.h"
+#include "../Base/DMDebug.h"
 //std
 #include <cmath>
+
+IMPORT_DEBUG_LOG()
 
 using namespace SLAM;
 using namespace std;
@@ -104,13 +107,14 @@ VectorType SLAM::Models::PolarPointLandmark::Difference(const VectorType& z1, co
     }
     
 //         cout << "Final distance: (" << res.transpose() << ")" << endl;
-    
+//     DPRINT("PPL Difference between (" << z1.transpose() << ") and (" << z2.transpose() << ") is [" << res.transpose() << "]")
     return res;
 }
 
 ScalarType SLAM::Models::PolarPointLandmark::Distance(const VectorType& z1, const VectorType& z2) {
     VectorType diff(SLAM::Models::PolarPointLandmark::Difference(z1, z2));
-    return sqrt(0.7*diff(0)*diff(0) + 0.3*diff(1)*diff(1));
+//     DPRINT("PPL Distance: " << sqrt(diff(0)*diff(0) + diff(1)*diff(1)))
+    return sqrt(diff(0)*diff(0) + 10*diff(1)*diff(1));
 }
 
 bool Models::PolarPointLandmark::Sort ( const SLAM::VectorType& z1, const SLAM::VectorType& z2 ) {

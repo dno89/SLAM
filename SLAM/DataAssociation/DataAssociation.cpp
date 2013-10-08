@@ -25,8 +25,8 @@ using namespace SLAM::Models;
 using namespace SLAM::Association;
 using namespace std;
 
-///FIXME
-// IMPORT_DEBUG_LOG()
+
+IMPORT_DEBUG_LOG()
 
 ////GREEDY DATA ASSOCIATION
 ScalarType SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
@@ -326,7 +326,9 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
     return ret;
 }
 
-vector< LandmarkAssociation > HungarianDataAssociation ( const vector< Observation >& observations, const EKFSLAMEngine& se) {
+ScalarType SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 1.0;
+ScalarType SLAM::Association::HungarianDataAssociationParams::ToIntFactor = 1000.0;
+vector< LandmarkAssociation > SLAM::Association::HungarianDataAssociation ( const vector< Observation >& observations, const EKFSLAMEngine& se) {
     DOPEN_CONTEXT("HungarianDataAssociation")
     
     if(observations.empty()) {
@@ -386,35 +388,41 @@ vector< LandmarkAssociation > HungarianDataAssociation ( const vector< Observati
         }
         
         if(!landmark_groups[lm].empty()) {
-            vector<bool> associated(landmark_groups[lm].size());
-            for(auto a : associated) {
-                a = false;
-            }
             vector<pair<int, int>> av;
+            const int rows = observation_groups[lm].size();
+            const int cols = landmark_groups[lm].size();
             
-            for(int ii = 0; ii < observation_groups[lm].size(); ++ii) {
-                //for each observation
-                ScalarType min_distance = numeric_limits<ScalarType>::max();
-                int min_index = -1;
-                
-                for(int jj = 0; jj < landmark_groups[lm].size(); ++jj) {
-                    if(associated[jj])
-                        continue;
-                    
-                    //check every landmark
-                    ScalarType distance = lm.Distance(observation_groups[lm][ii].first, landmark_groups[lm][jj].first);
-                    
-                    if(distance < min_distance) {
-                        min_distance = distance;
-                        min_index = jj;
+            //create the cost matrix
+            //put the obervations on the rows and the tracked landmark on the column
+            int** cost_matrix = new int*[rows];
+            for(int kk = 0; kk < rows; ++kk) {
+                cost_matrix[kk] = new int[cols];
+                for(int hh = 0; hh < cols; ++hh) {
+                    cost_matrix[kk][hh] = lm.Distance(observation_groups[lm][kk].first, landmark_groups[lm][hh].first)*HungarianDataAssociationParams::ToIntFactor;
+                }
+            }
+                        
+            //associate using the hungarian method
+            hungarian_problem_t h;
+            hungarian_init(&h, cost_matrix, rows, cols, HUNGARIAN_MODE_MINIMIZE_COST);
+            hungarian_solve(&h);
+            
+            //extract the associated pairs
+            for(int kk = 0; kk < rows; ++kk) {
+                for(int hh = 0; hh < cols; ++hh) {
+                    if(h.assignment[kk][hh]) {
+                        av.push_back(make_pair(kk, hh));
+                        break;
                     }
                 }
-                
-                if(min_index >= 0) { 
-                    associated[min_index] = true;
-                    av.push_back(make_pair(ii, min_index));
-                }
             }
+            
+            //free the hungarian struct and the dynamic memory of the cost matrix
+            hungarian_free(&h);
+            for(int kk = 0; kk < rows; ++kk) {
+                delete[] cost_matrix[kk];
+            }
+            delete[] cost_matrix;
             
             DPRINT("The group associations are:")
             for(auto ip : av) {
@@ -424,7 +432,7 @@ vector< LandmarkAssociation > HungarianDataAssociation ( const vector< Observati
                 DPRINT(ip.first << " - " << ip.second)
                 
                 //distance threshold
-                if(lm.Distance(observation_groups[lm][tmp_ob_index].first, landmark_groups[lm][tmp_lm_index].first) < SequentialDataAssociationParams::DistanceThreshold) {
+                if(lm.Distance(observation_groups[lm][tmp_ob_index].first, landmark_groups[lm][tmp_lm_index].first) < HungarianDataAssociationParams::DistanceThreshold) {
                     //accept this association
                     int real_lm_index = landmark_groups[lm][tmp_lm_index].second;
                     sub_ret[tmp_ob_index].LandmarkIndex = real_lm_index;

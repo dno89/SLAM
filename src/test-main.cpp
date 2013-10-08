@@ -669,7 +669,8 @@ namespace engine_test {
         const double observation_alpha_sigma = 0.004;
         
         SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
-		SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+        SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+		SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
 		
         //real vehicle position
         VectorType Xv(3);
@@ -683,29 +684,50 @@ namespace engine_test {
         ///SECTION: landmark initialization
         vector<VectorType> landmarks;
         
-//         for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
-//             VectorType Xm(2);
-//             Xm << un_x(lre), un_y(lre);
-//             
-//             real_Xm << Xm.transpose() << " ";
-//             
-//             landmarks.push_back(Xm);
-//         }
-//         real_Xm.close();
-        
-        VectorType Xm(2);
-        Xm << 0, 10;
-        landmarks.push_back(Xm);
-        real_Xm << Xm.transpose() << " ";
-        
-        Xm << 0, -10;
-        landmarks.push_back(Xm);
-        real_Xm << Xm.transpose() << " ";
-		
-		Xm << 30, 0;
-		landmarks.push_back(Xm);
-		real_Xm << Xm.transpose() << " ";
+        for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
+            VectorType Xm(2);
+            Xm << un_x(lre), un_y(lre);
+            
+            real_Xm << Xm.transpose() << " ";
+            
+            landmarks.push_back(Xm);
+        }
         real_Xm.close();
+        
+//         VectorType Xm(2);
+//         Xm << 0, 10;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+//         
+//         Xm << 0, -10;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+// 		
+// 		Xm << 30, 0;
+// 		landmarks.push_back(Xm);
+// 		real_Xm << Xm.transpose() << " ";
+//         
+//         Xm << 50, 50;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+//         
+//         Xm << 100, -50;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+//         
+//         Xm << 300, -100;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+//         
+//         Xm << 300, 150;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+//         
+//         Xm << 250, -80;
+//         landmarks.push_back(Xm);
+//         
+//         real_Xm << Xm.transpose() << " ";
+//         real_Xm.close();
         
 		MatrixType R(2, 2);
 		//         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
@@ -779,7 +801,7 @@ namespace engine_test {
 //             if(!percs.empty()) {
 //                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
 //             }
-            se.Update(observations, Association::GreedyDataAssociation);
+            se.Update(observations, Association::HungarianDataAssociation);
             cout << "Landmark perceived: " << observations.size() << endl;
             cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
             cout << "Real Xv: " << Xv.transpose() << endl;

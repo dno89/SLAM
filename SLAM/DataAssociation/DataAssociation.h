@@ -38,6 +38,8 @@ namespace SLAM {
 	std::vector<LandmarkAssociation> SequentialDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
 	
     namespace HungarianDataAssociationParams {
+        extern ScalarType DistanceThreshold;
+        extern ScalarType ToIntFactor;
     }
     std::vector<LandmarkAssociation> HungarianDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
     

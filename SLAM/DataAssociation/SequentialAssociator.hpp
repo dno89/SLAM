@@ -10,7 +10,7 @@
 
 #include "../Base/DMDebug.h"
 
-IMPORT_DEBUG_LOG()
+// IMPORT_DEBUG_LOG()
 
 #define ITERATOR_POS(IT,BEG,N) do { (IT)=(BEG); std::advance((IT),(N)); }while(0)
 
@@ -124,8 +124,8 @@ void SequentialAssociator<T1,T2,D>::associate(const ValueVector1& v1,const Value
 //         minBest = metric(v1[r],v2[c]);
 //       }
 //     }
-   DLOG() << "row " << r << ", col " << c <<"; value v1 " << v1[r] << " v2 " << v2[c] << ", cost " << distances(r,c) 
-     << ", values " << v1[r] << ":" << v2[c] << std::endl;
+//    DLOG() << "row " << r << ", col " << c <<"; value v1 " << v1[r] << " v2 " << v2[c] << ", cost " << distances(r,c) 
+//      << ", values " << v1[r] << ":" << v2[c] << std::endl;
     // Updates the row/col indices r and c toward the minimum between 
     // cells (r-1,c), (r,c-1) and (r-1,c-1)
     rprev = r;
