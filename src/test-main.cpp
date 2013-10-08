@@ -802,6 +802,12 @@ namespace engine_test {
 //                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
 //             }
             se.Update(observations, Association::HungarianDataAssociation);
+            
+            for(int jj = 0; jj < se.GetTrackedLandmarksSize(); ++jj) {
+                tracked_Xm << se.GetLandmarkEstimation(jj).transpose() << " ";
+            }
+            tracked_Xm << endl;
+            
             cout << "Landmark perceived: " << observations.size() << endl;
             cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
             cout << "Real Xv: " << Xv.transpose() << endl;
