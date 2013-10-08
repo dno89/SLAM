@@ -1,30 +1,27 @@
-/*
- *  C Implementation of Kuhn's Hungarian Method
- *  Copyright (C) 2003  Brian Gerkey <gerkey@robotics.usc.edu>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
-
-/*
- * A C implementation of the Hungarian method for solving Optimal Assignment
- * Problems.  Theoretically runs in O(mn^2) time for an m X n problem; this 
- * implementation is certainly not as fast as it could be.
- *
- * $Id: hungarian.h,v 1.8 2003/03/14 22:07:42 gerkey Exp $
- */
+/********************************************************************
+ ********************************************************************
+ **
+ ** libhungarian by Cyrill Stachniss, 2004
+ **
+ **
+ ** Solving the Minimum Assignment Problem using the 
+ ** Hungarian Method.
+ **
+ ** ** This file may be freely copied and distributed! **
+ **
+ ** Parts of the used code was originally provided by the 
+ ** "Stanford GraphGase", but I made changes to this code.
+ ** As asked by  the copyright node of the "Stanford GraphGase", 
+ ** I hereby proclaim that this file are *NOT* part of the
+ ** "Stanford GraphGase" distrubition!
+ **
+ ** This file is distributed in the hope that it will be useful,
+ ** but WITHOUT ANY WARRANTY; without even the implied 
+ ** warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+ ** PURPOSE.  
+ **
+ ********************************************************************
+ ********************************************************************/
 
 #ifndef HUNGARIAN_H
 #define HUNGARIAN_H
@@ -32,102 +29,50 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+  
+#define HUNGARIAN_NOT_ASSIGNED 0 
+#define HUNGARIAN_ASSIGNED 1
 
-#include <sys/types.h> // for size_t
-#include <string.h>
+#define HUNGARIAN_MODE_MINIMIZE_COST   0
+#define HUNGARIAN_MODE_MAXIMIZE_UTIL 1
 
-/* bzero is not always available (e.g., in Win32) */
-#ifndef bzero
-  #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
-#endif
 
-/* are we maximizing or minimizing? */
-#define HUNGARIAN_MIN 0
-#define HUNGARIAN_MAX 1
+typedef struct {
+  int num_rows;
+  int num_cols;
+  int** cost;
+  int** assignment;  
+} hungarian_problem_t;
 
-/*
- * a simple linked list
- */
-typedef struct
-{
-  int* i;
-  int* j;
-  int k;
-} hungarian_sequence_t;
+/** This method initialize the hungarian_problem structure and init 
+ *  the  cost matrices (missing lines or columns are filled with 0).
+ *  It returns the size of the quadratic(!) assignment matrix. **/
+int hungarian_init(hungarian_problem_t* p, 
+		   int** cost_matrix, 
+		   int rows, 
+		   int cols, 
+		   int mode);
+  
+/** Free the memory allocated by init. **/
+void hungarian_free(hungarian_problem_t* p);
 
-/*
- * we'll use objects of this type to keep track of the state of the problem
- * and its solution
- */
-typedef struct
-{
-  size_t m,n;  // problem dimensions
-  int** r;     // the rating (utility) matrix
-  int** q;     // the Q matrix
-  int* u;      // the U vector
-  int* v;      // the V vector
-  int* ess_rows; // list of essential rows
-  int* ess_cols; // list of essential columns
-  hungarian_sequence_t seq; // sequence of i's and j's
-  int row_total, col_total; // row and column totals
-  int* a;  // assignment vector
-  int maxutil;  // maximum utility
-  int mode; // are we maximizing or minimizing?
-} hungarian_t;
+/** This method computes the optimal assignment. **/
+void hungarian_solve(hungarian_problem_t* p);
 
-/*
- * initialize the given object as an mXn problem.  allocates storage, which
- * should be freed with hungarian_fini().
- */
-void hungarian_init(hungarian_t* prob, int** r, size_t m, size_t n, int mode);
+/** Print the computed optimal assignment. **/
+void hungarian_print_assignment(hungarian_problem_t* p);
 
-/*
- * frees storage associated with the given problem object.  you must have
- * called hungarian_init() first.
- */
-void hungarian_fini(hungarian_t* prob);
+/** Print the cost matrix. **/
+void hungarian_print_costmatrix(hungarian_problem_t* p);
 
-/*
- * solve the given problem.  runs the Hungarian Method on the rating matrix
- * to produce optimal assignment, which is stored in the vector prob->a.
- * you must have called hungarian_init() first.
- */
-void hungarian_solve(hungarian_t* prob);
-
-/*
- * prints out the resultant assignment in a 0-1 matrix form.  also computes
- * and prints out the benefit from the assignment.  you must have called
- * hungarian_solve() first.
- */
-void hungarian_print_assignment(hungarian_t* prob);
-
-/*
- * prints out the rating matrix for the given problem.  you must have called
- * hungarian_solve() first.
- */
-void hungarian_print_rating(hungarian_t* prob);
-
-/*
- * check whether an assigment is feasible.  returns 1 if the assigment is
- * feasible, 0 otherwise.  you must have called hungarian_solve() first.
- */
-int hungarian_check_feasibility(hungarian_t* prob);
-
-/*
- * computes and returns the benefit from the assignment.  you must have
- * called hungarian_solve() first.
- */
-int hungarian_benefit(hungarian_t* prob);
-
-/*
- * makes and returns a pointer to an mXn rating matrix with values uniformly 
- * distributed between 1 and MAXUTIL
- */
-int* make_random_r(size_t m, size_t n);
-int* make_r_from_ORlib(char* fname, int* m, int* n);
+/** Print cost matrix and assignment matrix. **/
+void hungarian_print_status(hungarian_problem_t* p);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+
+
+

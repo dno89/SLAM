@@ -108,7 +108,7 @@ vector<LandmarkAssociation> SLAM::Association::GreedyDataAssociation(const vecto
                     //check every landmark
                     ScalarType distance = lm.Distance(observation_groups[lm][ii].first, landmark_groups[lm][jj].first);
                     
-                    if(distance < min_distance) {
+                    if(distance < SequentialDataAssociationParams::DistanceThreshold && distance < min_distance) {
                         min_distance = distance;
                         min_index = jj;
                     }
@@ -128,13 +128,13 @@ vector<LandmarkAssociation> SLAM::Association::GreedyDataAssociation(const vecto
                 DPRINT(ip.first << " - " << ip.second)
                 
                 //distance threshold
-                if(lm.Distance(observation_groups[lm][tmp_ob_index].first, landmark_groups[lm][tmp_lm_index].first) < SequentialDataAssociationParams::DistanceThreshold) {
+//                 if(lm.Distance(observation_groups[lm][tmp_ob_index].first, landmark_groups[lm][tmp_lm_index].first) < SequentialDataAssociationParams::DistanceThreshold) {
                     //accept this association
                     int real_lm_index = landmark_groups[lm][tmp_lm_index].second;
                     sub_ret[tmp_ob_index].LandmarkIndex = real_lm_index;
-                } else {
-                    DWARNING("Association discarded because the distance (" << lm.Distance(observation_groups[lm][tmp_ob_index].first, landmark_groups[lm][tmp_lm_index].first) << ") is greater than threshold")
-                }
+//                 } else {
+//                     DWARNING("Association discarded because the distance (" << lm.Distance(observation_groups[lm][tmp_ob_index].first, landmark_groups[lm][tmp_lm_index].first) << ") is greater than threshold")
+//                 }
             }
         }
         

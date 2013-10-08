@@ -668,7 +668,8 @@ namespace engine_test {
     int full_slam_engine_test(int argc, char **argv) {
         const double observation_alpha_sigma = 0.004;
         
-		SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 5.0;
+        SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
+		SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
 		
         //real vehicle position
         VectorType Xv(3);
@@ -778,7 +779,7 @@ namespace engine_test {
 //             if(!percs.empty()) {
 //                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
 //             }
-            se.Update(observations, Association::SequentialDataAssociation);
+            se.Update(observations, Association::GreedyDataAssociation);
             cout << "Landmark perceived: " << observations.size() << endl;
             cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
             cout << "Real Xv: " << Xv.transpose() << endl;
