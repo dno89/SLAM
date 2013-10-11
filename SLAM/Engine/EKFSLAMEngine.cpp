@@ -346,9 +346,9 @@ int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const Landm
         //B is the square Nj x Nj bottom right block
         B.noalias() = initialization_model.dG_dXv(m_Xv, raw_observation) * m_Pvv * initialization_model.dG_dXv(m_Xv, raw_observation).transpose() + initialization_model.dG_dZ(m_Xv, raw_observation) * R * initialization_model.dG_dZ(m_Xv, raw_observation).transpose();
         
-        DTRACE_L(A)
-        DTRACE_L(B)
-        DTRACE_L(m_Pmm)
+//         DTRACE_L(A)
+//         DTRACE_L(B)
+//         DTRACE_L(m_Pmm)
         
         //add the columns
         m_Pmm.conservativeResize(Eigen::NoChange, m_Pmm.cols()+Nj);
@@ -358,27 +358,27 @@ int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const Landm
         m_Pmm.bottomLeftCorner(/*A.cols()*/Nj, A.rows()) = A.transpose();
         m_Pmm.bottomRightCorner(Nj, Nj) = B;
         
-        DTRACE_L(m_Pmm)
+//         DTRACE_L(m_Pmm)
         
         //add Nj columns to Pvm
-        DTRACE_L(m_Pvm)
+//         DTRACE_L(m_Pvm)
         m_Pvm.conservativeResize(Eigen::NoChange_t(), m_Pvm.cols() + Nj);
         m_Pvm.rightCols(Nj).noalias() = m_Pvv.transpose() * initialization_model.dG_dXv(m_Xv, raw_observation).transpose();
-        DTRACE_L(m_Pvm)
+//         DTRACE_L(m_Pvm)
     } else {
         //this is the first landmark
         
         //create Pmm
         m_Pmm = initialization_model.dG_dXv(m_Xv, raw_observation) * m_Pvv * initialization_model.dG_dXv(m_Xv, raw_observation).transpose() + initialization_model.dG_dZ(m_Xv, raw_observation) * R * initialization_model.dG_dZ(m_Xv, raw_observation).transpose();
         
-        DTRACE_L(m_Pmm)
+//         DTRACE_L(m_Pmm)
         
         //create Pvm
         //add Nj columns to Pvm
         m_Pvm.conservativeResize(m_XvSize, Nj);
         m_Pvm.rightCols(Nj).noalias() = m_Pvv.transpose() * initialization_model.dG_dXv(m_Xv, raw_observation).transpose();
         
-        DTRACE_L(m_Pvm)
+//         DTRACE_L(m_Pvm)
     }
     
 #ifndef NDEBUG

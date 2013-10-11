@@ -142,6 +142,13 @@ namespace SLAM {
         }
         
         /**
+         * @brief compare operator required by the std::map
+         */
+        friend bool operator<(const LandmarkPerceptionModel& m1, const LandmarkPerceptionModel& m2) {
+            return m1.m_H < m2.m_H;
+        }
+        
+        /**
          * @note Wrapper for H, dH_dXv and dH_dXm functions
          */
         ObservationType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
