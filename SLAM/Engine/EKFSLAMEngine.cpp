@@ -134,16 +134,16 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
 //     VectorType std_ni(eta_p);
     VectorType ni(eta_p);
     for(int ii = 0; ii < p; ++ii) {
-//         DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
-//         DPRINT("Predicted observation : " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
-//         DPRINT("Actual observation : " << perceptions[ii].Z.transpose())
+        DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
+        DPRINT("Predicted observation : " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
+        DPRINT("Actual observation : " << perceptions[ii].Z.transpose())
         
 //         std_ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
         
         ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Difference(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
     }
 //     DTRACE_L(std_ni)
-//     DTRACE_L(ni)
+    DTRACE_L(ni)
     
     //the jacobian matrix
     Eigen::SparseMatrix<ScalarType> dH_dX(eta_p, eta + m_XvSize);
@@ -331,7 +331,7 @@ int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const Landm
     //add it to the list
     m_landmarks.push_back(new_lm);
     
-    DPRINT("New Landmark added with state (" << new_lm.Xm.transpose() << "), and AcculumatedSize: " << new_lm.AccumulatedSize)
+    DPRINT("New Landmark added with state (" << new_lm.Xm.transpose() << "), covariance:\n" << R << "\n and AcculumatedSize: " << new_lm.AccumulatedSize)
     
     //the new landmark state size
     const int Nj = Xm.rows();

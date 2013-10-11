@@ -32,7 +32,7 @@ MatrixType SLAM::Models::CartesianPointLandmark::dH_dXv(const VectorType& Xv, co
     const double ct = cos(Xv[2]), st = sin(Xv[2]);
 
     J <<    -ct,    -st,    st*(Xv[0] - Xm[0]) - ct*(Xv[1] - Xm[1]),
-            st,     -ct,    ct*(Xv[0] - Xm[0])  + st*(Xv[1] - Xv[1]);
+            st,     -ct,    ct*(Xv[0] - Xm[0]) + st*(Xv[1] - Xm[1]);
     
     return J;
 }

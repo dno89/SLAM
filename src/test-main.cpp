@@ -649,7 +649,7 @@ namespace engine_test {
                             }
                         }
                         //the zero part
-                        for(ii = 0; ii < old_cols; ++ii) {
+                        for(int ii = 0; ii < old_cols; ++ii) {
                             for(int jj = old_cols; jj < old_cols+2; ++jj) {
                                 R(ii, jj) = 0.0;
                             }
@@ -669,6 +669,7 @@ namespace engine_test {
             }
             
             if(!percs.empty()) {
+//                 cerr << "R:\n" << R << endl;
                 se.Update(percs, R);
             }
             if(!toAdd.empty()) {
