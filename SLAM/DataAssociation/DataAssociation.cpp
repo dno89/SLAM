@@ -169,7 +169,7 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
 	
 	////typedef
 // 	typedef VectorType ValueType;
-	typedef SequentialAssociator<VectorType, VectorType, ScalarType> SAType;
+	typedef SequentialAssociator<VectorType, ScalarType> SAType;
     typedef map<LandmarkPerceptionModel, vector<pair<VectorType, int>>> MapType;
     //MapType: for each model type, store a vector of Observations(landmark observations) with the relative original index in the initial sequence
 	
@@ -261,7 +261,7 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
 //                 DINFO("The distance between v1: (" << v1.transpose() << ") and v2: (" << v2.transpose() << ") is " << lm.Distance(v1, v2).norm())
 //                 return lm.Distance(v1, v2).norm();
 //             });
-            SAType sa([&lm](const SAType::Value1& v1, const SAType::Value2& v2){return lm.Distance(v1, v2);}, false);
+            SAType sa([&lm](const SAType::Value& v1, const SAType::Value& v2){return lm.Distance(v1, v2);}, false);
 			
 // 			DPRINT("The observation are: ")
 			//create the observation subgroup
@@ -281,7 +281,7 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
 		
 			//make the association
 			SAType::AssociationVector av;
-			sa.associate(observations_Z, landmarks_Z, av);
+			sa.associate(observations_Z, landmarks_Z, av/*, SequentialDataAssociationParams::DistanceThreshold*/);
 			
 			DTRACE_L(sa.getDistanceMatrix())
 			
