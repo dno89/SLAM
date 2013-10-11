@@ -513,6 +513,216 @@ namespace engine_test {
         return 0;
     }
     
+    int slam_engine_test_cartesian(int argc, char **argv) {
+//         const double observation_sigma = 0.01;
+        
+        //real vehicle position
+        VectorType Xv(3);
+//      Xv << state_pos_noise(eng_state), state_pos_noise(eng_state), state_ang_noise(eng_state);
+        Xv << 0.0, 0.0, 0.0;
+        
+        ofstream out_Xv("/tmp/Xv.dat");
+        ofstream out_XvE("/tmp/XvE.dat");
+        ofstream real_Xm("/tmp/real_Xm.dat");
+        ofstream tracked_Xm("/tmp/tracked_Xm.dat");
+        
+        ///SECTION: landmark initialization
+        vector<VectorType> landmarks;
+        map<int, int> associations;
+        
+        for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
+            VectorType Xm(2);
+            Xm << un_x(lre), un_y(lre);
+            
+            real_Xm << Xm.transpose() << " ";
+            
+            landmarks.push_back(Xm);
+        }
+        real_Xm.close();
+        
+//         VectorType Xm(2);
+//         Xm << 300, 0;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+        
+//         Xm << 0, 10;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+//         
+//         Xm << 0, -10;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+//         
+//         Xm << -10, 0;
+//         landmarks.push_back(Xm);
+//         real_Xm << Xm.transpose() << " ";
+        
+//         MatrixType R(2, 2);
+// //         R = MatrixXd::Identity(2, 2)*observation_sigma*observation_sigma;
+//         R << observation_rho_sigma*observation_rho_sigma, 0.0,
+//         0.0, observation_alpha_sigma*observation_alpha_sigma;
+            
+        MatrixType Q(3, 3);
+        Q << state_pos_sigma*state_pos_sigma, 0, 0,
+            0, state_pos_sigma*state_pos_sigma, 0,
+            0, 0, state_ang_sigma*state_ang_sigma;
+        
+        //the SLAM engine
+        EKFSLAMEngine se;
+        //setup the state model
+//         se.Setup(Vector3d(0, 0, 0), Q, VM);
+        se.Setup(Vector3d(0, 0, 0), Q, Models::SimpleUnicycleModel);
+        cout << "Initial estimated Xv: " << se.GetStateEstimation().transpose() << endl;
+        
+        ///PLOTTING SCRIPT
+        strstream script;
+//      script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\nunset colorbox\n";
+        script << "#!/usr/bin/gnuplot -persistent\nset datafile missing \"?\"\n";
+        for(int ii = 0; ii < landmarks.size(); ++ii) {
+            script << "count" << ii << " = 0\n";
+        }
+        script << "plot '/tmp/Xv.dat' u 1:2 w l t 'real', '' u 4:5 w l t 'tracked', '/tmp/real_Xm.dat' u 1:2 t ''";
+        for(int ii = 1; ii < landmarks.size(); ++ii) {
+            script << ", '' u " << 2*ii+1 << ":" << 2*ii+2 << " t ''";
+        }
+        script << ", '/tmp/tracked_Xm.dat' u 1:2:(count0 = count0 + 1) palette t ''";
+        for(int ii = 1; ii < landmarks.size(); ++ii) {
+            script << ", '' u " << 2*ii+1 << ":" << 2*ii+2 << ":(count" << ii << " = count" << ii << " + 1) palette t ''";
+        }
+        script << endl << '\0';
+        ofstream out_script("/tmp/script.gnu");
+        out_script << script.str() << flush;
+        out_script.close();
+        
+        const unsigned long int TOTAL_TICK = 1e4;
+        for(int ii = 0; ii < TOTAL_TICK; ++ii) {
+            auto t_start = high_resolution_clock::now();
+            
+            cout << "--[[ ITERATION " << ii << " ]]--\n";
+            //initial condition
+            cout << "Real Xv: " << Xv.transpose() << endl;
+            cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
+            //the control input
+            VectorType U(Control_input_generator(ii));
+            cout << "--< prediction >--\nU: " << U.transpose() << endl;
+            //real state update
+            Xv = noisy_F(Xv, U);
+            se.Predict(U, Q);
+            cout << "Real Xv: " << Xv.transpose() << endl;
+            cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
+            
+            cout << "--< update >--\n";
+            
+            std::vector<AssociatedPerception> percs;
+            std::vector<int> toAdd;
+            MatrixXd R(0, 0);
+            for(int jj = 0; jj < landmarks.size(); ++jj) {
+                //check if the robot sees the landmark ii
+                Vector2d z = Models::PolarPointLandmark::Normalize(Models::PolarPointLandmark::H(Xv, landmarks[jj]));
+//                 double distance = sqrt((landmarks[ii][0] - Xv[0])*(landmarks[ii][0] - Xv[0]) + (landmarks[ii][1] - Xv[1])*(landmarks[ii][1] - Xv[1]));
+                
+                if(z[0] <= SENSOR_RANGE_MAX && z[0] > SENSOR_RANGE_MIN && abs(z[1]) <= SENSOR_ANGLE_MAX) {
+                    //check if the landmarks ii has been seen before
+                    if(associations.count(jj)) {
+                        //the landmark is in range
+                        VectorType polar = Observation_generator(Xv, landmarks[jj]);
+                        const double ca = cos(polar[1]), sa = sin(polar[1]);
+                        const double ca2 = ca*ca, sa2 = sa*sa;
+                        const double sigmaa2 = observation_alpha_sigma*observation_alpha_sigma, sigmar2 = observation_rho_sigma*observation_rho_sigma;
+                        
+                        //the cartesian version
+                        VectorType cartesian(2);
+                        cartesian << polar[0]*ca, polar[0]*sa;
+                        percs.push_back(AssociatedPerception(cartesian, associations[jj]));
+                        
+                        //the adjusted covariance matrix
+                        MatrixType r(2, 2);
+                        r <<    ca2*sigmar2 + polar[0]*polar[0]*sa2*sigmaa2,    sa*ca*sigmar2-sa*ca*polar[0]*polar[0]*sigmaa2,
+                                sa*ca*sigmar2-sa*ca*polar[0]*polar[0]*sigmaa2,  sa2*sigmar2 + polar[0]*polar[0]*ca2*sigmaa2;
+                                
+                        const int old_rows = R.rows(), old_cols = R.cols();
+                        R.conservativeResize(old_rows+2, old_cols+2);
+                        //the new part
+                        for(int ii = old_rows; ii < old_rows+2; ++ii) {
+                            for(int jj = old_cols; jj < old_cols+2; ++jj) {
+                                R(ii, jj) = r(ii-old_rows, jj-old_cols);
+                            }
+                        }
+                        //the zero part
+                        for(ii = 0; ii < old_cols; ++ii) {
+                            for(int jj = old_cols; jj < old_cols+2; ++jj) {
+                                R(ii, jj) = 0.0;
+                            }
+                        }
+                        for(int ii = old_rows; ii < old_rows+2; ++ii) {
+                            for(int jj = 0; jj < old_cols; ++jj) {
+                                R(ii, jj) = 0.0;
+                            }
+                        }
+                        
+//                         percs.push_back(AssociatedPerception(Observation_generator(Xv, landmarks[jj]), associations[jj]));
+                    } else {
+                        toAdd.push_back(jj);
+//                         associations[ii] = se.AddNewLandmark(Observation_generator(Xv, landmarks[ii]), LM, LIM, R);
+                    }
+                }
+            }
+            
+            if(!percs.empty()) {
+                se.Update(percs, R);
+            }
+            if(!toAdd.empty()) {
+                for(auto l_index : toAdd) {
+                    //compute R
+                    //the landmark is in range
+                    VectorType polar = Observation_generator(Xv, landmarks[l_index]);
+                    const double ca = cos(polar[1]), sa = sin(polar[1]);
+                    const double ca2 = ca*ca, sa2 = sa*sa;
+                    const double sigmaa2 = observation_alpha_sigma*observation_alpha_sigma, sigmar2 = observation_rho_sigma*observation_rho_sigma;
+                    
+                    //the adjusted covariance matrix
+                    MatrixType r(2, 2);
+                    r <<    ca2*sigmar2 + polar[0]*polar[0]*sa2*sigmaa2,    sa*ca*sigmar2-sa*ca*polar[0]*polar[0]*sigmaa2,
+                            sa*ca*sigmar2-sa*ca*polar[0]*polar[0]*sigmaa2,  sa2*sigmar2 + polar[0]*polar[0]*ca2*sigmaa2;
+                            
+                    //the cartesian version
+                    VectorType cartesian(2);
+                    cartesian << polar[0]*ca, polar[0]*sa;
+                    
+                    associations[l_index] = se.AddNewLandmark(cartesian, Models::CartesianPointLandmarkModel, r);
+                }
+            }
+            cout << "Landmark perceived: " << percs.size() << endl;
+            cout << "Landmark tracked: " << se.GetTrackedLandmarksSize() << endl;
+            cout << "Real Xv: " << Xv.transpose() << endl;
+            cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
+            
+            out_Xv << Xv.transpose() << " " << se.GetStateEstimation().transpose() << endl;
+            
+            for(int ii = 0; ii < landmarks.size(); ++ii) {
+                if(associations.count(ii)) {
+                    //tracked
+                    VectorType Xm(se.GetLandmarkEstimation(associations[ii]));
+                    tracked_Xm << " " << Xm.transpose();
+                } else {
+                    //not tracked
+                    tracked_Xm << " ? ?";
+                }
+            }
+            tracked_Xm << endl;
+            
+            double error = StateDistance(Xv, se.GetStateEstimation()).norm();
+            cout << "--<< SUMMARY: Xv error: " << error << endl;
+            out_XvE << error << endl;
+            
+            auto dt = high_resolution_clock::now() - t_start;
+            cout << "--<< " << duration_cast<microseconds>(dt).count() << " us >>--" << endl << endl;
+            cerr << '+';
+        }
+        
+        return 0;
+    }
+    
     int full_slam_engine_test(int argc, char **argv) {
         const double observation_alpha_sigma = 0.004;
         
@@ -692,8 +902,8 @@ namespace engine_test {
         const double observation_alpha_sigma = 0.004;
         
         SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 1.0;
-        SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 1.0;
+        SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+        SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
         
         //real vehicle position
         VectorType Xv(3);
@@ -707,28 +917,28 @@ namespace engine_test {
         ///SECTION: landmark initialization
         vector<VectorType> landmarks;
         
-        for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
-            VectorType Xm(2);
-            Xm << un_x(lre), un_y(lre);
-            
-            real_Xm << Xm.transpose() << " ";
-            
-            landmarks.push_back(Xm);
-        }
-        real_Xm.close();
+//         for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
+//             VectorType Xm(2);
+//             Xm << un_x(lre), un_y(lre);
+//             
+//             real_Xm << Xm.transpose() << " ";
+//             
+//             landmarks.push_back(Xm);
+//         }
+//         real_Xm.close();
         
-//         VectorType Xm(2);
-//         Xm << 0, 10;
-//         landmarks.push_back(Xm);
-//         real_Xm << Xm.transpose() << " ";
-//         
-//         Xm << 0, -10;
-//         landmarks.push_back(Xm);
-//         real_Xm << Xm.transpose() << " ";
-//      
-//      Xm << 30, 0;
-//      landmarks.push_back(Xm);
-//      real_Xm << Xm.transpose() << " ";
+        VectorType Xm(2);
+        Xm << 0, 10;
+        landmarks.push_back(Xm);
+        real_Xm << Xm.transpose() << " ";
+        
+        Xm << 0, -10;
+        landmarks.push_back(Xm);
+        real_Xm << Xm.transpose() << " ";
+     
+        Xm << 30, 0;
+        landmarks.push_back(Xm);
+        real_Xm << Xm.transpose() << " ";
         
 //         Xm << 50, 50;
 //         landmarks.push_back(Xm);
@@ -884,9 +1094,10 @@ void RegisterFunctions() {
     register_function("base_test",          base_test);
     register_function("hungarian_test",     hungarian_test);
     register_function("speed_test",         speed_test);
-    register_function("slam_test",          engine_test::slam_engine_test);
-    register_function("full_slam_test",     engine_test::full_slam_engine_test);
-    register_function("full_slam_test_cartesian",     engine_test::full_slam_engine_test_cartesian);
+    register_function("slam_test",                      engine_test::slam_engine_test);
+    register_function("slam_test_cartesian",            engine_test::slam_engine_test_cartesian);
+    register_function("full_slam_test",                 engine_test::full_slam_engine_test);
+    register_function("full_slam_test_cartesian",       engine_test::full_slam_engine_test_cartesian);
 }
 
 
