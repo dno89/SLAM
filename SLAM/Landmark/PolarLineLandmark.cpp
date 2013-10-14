@@ -89,14 +89,19 @@ MatrixType SLAM::Models::PolarLineLandmark::dG_dZ(const VectorType& Xv, const Ve
 }
 
 VectorType SLAM::Models::PolarLineLandmark::Difference(const VectorType& z1, const VectorType& z2) {
-    assert(false);
+//     assert(false);
 //         cout << ">> PointLandmarkDistance called with z1: " << z1.transpose() << ", z2: " << z2.transpose() << endl;
     static const double PI2 = 2*M_PI;
     VectorType res(2);
-    res[0] = z1[0] - z2[0];
+    if(z1[1] < 0 || z2[1] < 0) {
+//         res[1] = std::numeric_limits<ScalarType>::max();
+        DERROR("PolarLineLandmark::Difference ERROR: one 'r' is negative!")
+    } else {
+        res[1] = z1[1] - z2[1];
+    }
     
     //angular distance
-    ScalarType theta1 = z1[1], theta2 = z2[1];
+    ScalarType theta1 = z1[0], theta2 = z2[0];
 //         cout << "z1: " << theta1 << ", z2: " << theta2 << endl;
     
     while(theta1 < 0.0) theta1 += PI2;
@@ -110,15 +115,15 @@ VectorType SLAM::Models::PolarLineLandmark::Difference(const VectorType& z1, con
     
     if(d1 <= d2) {
         if(theta1 > theta2) {
-            res[1] = d1;
+            res[0] = d1;
         } else {
-            res[1] = -d1;
+            res[0] = -d1;
         }
     } else {
         if(theta1 > theta2) {
-            res[1] = d2;
+            res[0] = d2;
         } else {
-            res[1] = -d2;
+            res[0] = -d2;
         }
     }
     
@@ -128,10 +133,13 @@ VectorType SLAM::Models::PolarLineLandmark::Difference(const VectorType& z1, con
 }
 
 ScalarType SLAM::Models::PolarLineLandmark::Distance(const VectorType& z1, const VectorType& z2) {
-    assert(false);
+//     assert(false);
+    if(z1[1]*z2[1] < 0.0) {
+        return numeric_limits<ScalarType>::max();
+    }
     VectorType diff(SLAM::Models::PolarLineLandmark::Difference(z1, z2));
 //     DPRINT("PPL Distance: " << sqrt(diff(0)*diff(0) + diff(1)*diff(1)))
-    return sqrt(diff(0)*diff(0) + 10*diff(1)*diff(1));
+    return sqrt(diff(0)*diff(0) + 10.0*diff(1)*diff(1));
 }
 
 bool Models::PolarLineLandmark::Sort ( const SLAM::VectorType& z1, const SLAM::VectorType& z2 ) {
@@ -140,13 +148,13 @@ bool Models::PolarLineLandmark::Sort ( const SLAM::VectorType& z1, const SLAM::V
 }
 
 VectorType SLAM::Models::PolarLineLandmark::Normalize(const VectorType& z) {
-    assert(false);
+//     assert(false);
 //         cout << ">> PointLandmarkDistance called with z1: " << z1.transpose() << ", z2: " << z2.transpose() << endl;
     static const double PI2 = 2*M_PI;
     VectorType res(z);
     
-    while(res(1) < -M_PI) res(1) += PI2;
-    while(res(1) > M_PI) res(1) -= PI2;
+    while(res(0) < -M_PI) res(0) += PI2;
+    while(res(0) > M_PI) res(0) -= PI2;
     
     return res;
 }

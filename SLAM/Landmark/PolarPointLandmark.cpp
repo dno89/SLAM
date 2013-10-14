@@ -106,7 +106,7 @@ VectorType SLAM::Models::PolarPointLandmark::Difference(const VectorType& z1, co
         }
     }
     
-//         cout << "Final distance: (" << res.transpose() << ")" << endl;
+//     cout << "Final distance: (" << res.transpose() << ")" << endl;
 //     DPRINT("PPL Difference between (" << z1.transpose() << ") and (" << z2.transpose() << ") is [" << res.transpose() << "]")
     return res;
 }
@@ -115,6 +115,10 @@ ScalarType SLAM::Models::PolarPointLandmark::Distance(const VectorType& z1, cons
     VectorType diff(SLAM::Models::PolarPointLandmark::Difference(z1, z2));
 //     DPRINT("PPL Distance: " << sqrt(diff(0)*diff(0) + diff(1)*diff(1)))
     return sqrt(diff(0)*diff(0) + 10*diff(1)*diff(1));
+    
+    ///FIXME: this distance yields worse performances.. WHY??
+//     const ScalarType dx = z1[0]*cos(z1[1]) - z2[0]*cos(z2[1]), dy = z1[0]*sin(z1[1]) - z2[0]*sin(z2[1]);
+//     return sqrt(dx*dx + dy*dy);
 }
 
 bool Models::PolarPointLandmark::Sort ( const SLAM::VectorType& z1, const SLAM::VectorType& z2 ) {
