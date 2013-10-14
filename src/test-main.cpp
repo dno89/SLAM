@@ -12,6 +12,7 @@
 #include "../SLAM/SLAM.h"
 #include "../SLAM/Vehicle/SimpleUnicycle.h"
 #include "../SLAM/Landmark/PolarPointLandmark.h"
+#include "../SLAM/Landmark/PolarLineLandmark.h"
 #include "../SLAM/Landmark/CartesianPointLandmark.h"
 extern "C" {
 #include "../SLAM/DataAssociation/hungarian.h"
@@ -245,6 +246,116 @@ int map_test(int argc, char **argv) {
     m[CartesianPointLandmarkModel] = 100;
     
     cout << "The polar model: " << m[PolarPointLandmarkModel] << ", the cartesian model: " << m[CartesianPointLandmarkModel] << endl;
+    
+    return 0;
+}
+
+int line_test(int argc, char **argv) {
+    using namespace SLAM::Models;
+    std::cout << "Line test" << std::endl;
+    {
+        cout << "TEST 1" << endl;
+        const double theta = M_PI/4.0;
+        
+        //the robot position
+        VectorType Xv(3);
+        Xv << cos(theta), sin(theta), theta;
+        cout << "The robot state: (" << Xv.transpose() << ")" << endl;
+        
+        
+        //the line wrt the robot
+        VectorType l(2);
+        l << 0.0, 1.0;
+        cout << "The line perceived by the robot: (" << l.transpose() << ")" << endl;
+        
+        //the line wrt the world
+        cout << "The line wrt the world: (" << PolarLineLandmark::G(Xv, l).transpose() << ")" << endl;
+    }
+    {
+        cout << "\n\nTEST 2\n";
+        const double theta = M_PI/5.0;
+        
+        //the robot position
+        VectorType Xv(3);
+        Xv << cos(M_PI/4.0), sin(M_PI/4.0), theta;
+        cout << "The robot state: (" << Xv.transpose() << ")" << endl;
+        
+        
+        //the line wrt the robot
+        VectorType l(2);
+        l << M_PI/20.0, 1.0;
+        cout << "The line perceived by the robot: (" << l.transpose() << ")" << endl;
+        
+        //the line wrt the world
+        VectorType lw = PolarLineLandmark::G(Xv, l);
+        cout << "The line wrt the world: (" << lw.transpose() << ")" << endl;
+        cout << "The line back to the robot reference: (" << PolarLineLandmark::H(Xv, lw).transpose() << ")" << endl;
+    }
+    {
+        cout << "\n\nTEST 3\n";
+        const double theta = M_PI/4.0;
+        
+        //the robot position
+        VectorType Xv(3);
+        Xv << 2*cos(theta), 2*sin(theta), theta;
+        cout << "The robot state: (" << Xv.transpose() << ")" << endl;
+        
+        
+        //the line wrt the robot
+        VectorType l(2);
+        l << M_PI, 1.0;
+        cout << "The line perceived by the robot: (" << l.transpose() << ")" << endl;
+        
+        //the line wrt the world
+        VectorType lw = PolarLineLandmark::G(Xv, l);
+        cout << "The line wrt the world: (" << lw.transpose() << ")" << endl;
+        cout << "The line back to the robot reference: (" << PolarLineLandmark::H(Xv, lw).transpose() << ")" << endl;
+    }
+    {
+        cout << "\n\nTEST 4\n";
+        const double theta = M_PI/3.0;
+        
+        //the robot position
+        VectorType Xv(3);
+        Xv << 2*cos(theta), 2*sin(theta), 0.0;
+        cout << "The robot state: (" << Xv.transpose() << ")" << endl;
+        
+        
+        //the line wrt the robot
+        VectorType l1(2), l2(2);
+        l1 << M_PI, 0.4;
+        l2 << M_PI, 2.0;
+        cout << "The line 1 perceived by the robot: (" << l1.transpose() << ")" << endl;
+        cout << "The line 2 perceived by the robot: (" << l2.transpose() << ")" << endl;
+        
+        //the line wrt the world
+        VectorType lw1 = PolarLineLandmark::G(Xv, l1);
+        VectorType lw2 = PolarLineLandmark::G(Xv, l2);
+        cout << "The line 1 wrt the world: (" << lw1.transpose() << ")" << endl;
+        cout << "The line 2 wrt the world: (" << lw2.transpose() << ")" << endl;
+        cout << "The line 1 back to the robot reference: (" << PolarLineLandmark::H(Xv, lw1).transpose() << ")" << endl;
+        cout << "The line 2 back to the robot reference: (" << PolarLineLandmark::H(Xv, lw2).transpose() << ")" << endl;
+    }
+    {
+        cout << "\n\nTEST 5\n";
+        const double theta = M_PI/2.0;
+        
+        //the robot position
+        VectorType Xv(3);
+        Xv << 2, 1.5, theta;
+        cout << "The robot state: (" << Xv.transpose() << ")" << endl;
+        
+        
+        //the line wrt the robot
+        VectorType lw1(2), lw2(2);
+        lw1 << M_PI, -3.0;
+        lw2 << M_PI, -1.0;
+        
+        cout << "The line 1 wrt the world: (" << lw1.transpose() << ")" << endl;
+        cout << "The line 2 wrt the world: (" << lw2.transpose() << ")" << endl;
+        cout << "The line 1 wrt the robot: (" << PolarLineLandmark::H(Xv, lw1).transpose() << ")" << endl;
+        cout << "The line 2 wrt the robot: (" << PolarLineLandmark::H(Xv, lw2).transpose() << ")" << endl;
+    }
     
     return 0;
 }
@@ -1319,6 +1430,7 @@ void RegisterFunctions() {
     register_function("hungarian_test",     hungarian_test);
     register_function("speed_test",         speed_test);
     register_function("map_test",           map_test);
+    register_function("line_test",          line_test);
     register_function("slam_test",                      engine_test::slam_engine_test);
     register_function("slam_test_cartesian",            engine_test::slam_engine_test_cartesian);
     register_function("full_slam_test",                 engine_test::full_slam_engine_test);
