@@ -434,7 +434,7 @@ namespace engine_test {
     * ***************************************************************************/
     VectorType noisy_F(const VectorType& Xv, const VectorType& U) {
 //         cout << ">> noisy_F called with Xv = (" << Xv.transpose() << "), U = (" << U.transpose() << ")" << endl;
-        Vector3d res(Xv);
+        VectorType res(Xv);
         
         res[0] += U[0]*time_increment*cos(Xv[2]+U[1]*time_increment/2.0) + state_pos_noise(eng_state);
         res[1] += U[0]*time_increment*sin(Xv[2]+U[1]*time_increment/2.0) + state_pos_noise(eng_state);
@@ -1557,10 +1557,11 @@ namespace engine_test {
             for(int jj = 0; jj < landmarks.size(); ++jj) {
                 //check if the robot sees the landmark ii
                 Vector2d z = Models::PolarLineLandmark::H(Xv, landmarks[jj]);
-                if(z[1] >= 0) {
+                if(z[1] > 0) {
                     //this line is visibile
                     z[0] += observation_alpha_noise(eng_ob);
                     z[1] += observation_rho_noise(eng_ob);
+                    while(z[1] < 0.0) z[1] += 0.001;
                     observations.push_back(Observation(z, R, Models::PolarLineLandmarkModel));
                 }
                 
