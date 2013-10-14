@@ -1449,23 +1449,25 @@ namespace engine_test {
         ///SECTION: landmark initialization
         vector<VectorType> landmarks;
         
-//         for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
-//             VectorType Xm(2);
-//             Xm << un_x(lre), un_y(lre);
-//             
+        uniform_real_distribution<ScalarType> un_alpha(-M_PI, M_PI), un_r(-100, 100);
+        
+        for(int ii = 0; ii < LANDMARK_NUMBER; ++ii) {
+            VectorType Xm(2);
+            Xm << un_alpha(lre), un_r(lre);
+            
 //             real_Xm << Xm.transpose() << " ";
-//             
-//             landmarks.push_back(Xm);
-//         }
+            
+            landmarks.push_back(Xm);
+        }
 //         real_Xm.close();
         
-        VectorType Xm(2);
-        Xm << M_PI, -1;
-        landmarks.push_back(Xm);
+//         VectorType Xm(2);
+//         Xm << M_PI, -1;
+//         landmarks.push_back(Xm);
 //         real_Xm << Xm.transpose() << " ";
-        
-        Xm << 0, 5;
-        landmarks.push_back(Xm);
+//         
+//         Xm << 0, 5;
+//         landmarks.push_back(Xm);
 //         real_Xm << Xm.transpose() << " ";
 //      
 //      Xm << 30, 0;

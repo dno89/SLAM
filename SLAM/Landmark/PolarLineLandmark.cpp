@@ -8,6 +8,7 @@
 //SLAM
 #include "PolarLineLandmark.h"
 #include "../Base/DMDebug.h"
+// #include "../DataAssociation/DataAssociation.h"
 //std
 #include <cmath>
 
@@ -133,12 +134,14 @@ VectorType SLAM::Models::PolarLineLandmark::Difference(const VectorType& z1, con
 }
 
 ScalarType SLAM::Models::PolarLineLandmark::Distance(const VectorType& z1, const VectorType& z2) {
-//     assert(false);
     if(z1[1]*z2[1] < 0.0) {
+//         DINFO("Polar Line Distance between (" << z1.transpose() << ") e (" << z2.transpose() << ") is: INFINITE")
+        
         return numeric_limits<ScalarType>::max();
+//         return 100.0;
     }
     VectorType diff(SLAM::Models::PolarLineLandmark::Difference(z1, z2));
-//     DPRINT("PPL Distance: " << sqrt(diff(0)*diff(0) + diff(1)*diff(1)))
+//     DINFO("Polar Line Distance between (" << z1.transpose() << ") e (" << z2.transpose() << ") is: " << sqrt(diff(0)*diff(0) + diff(1)*diff(1)))
     return sqrt(diff(0)*diff(0) + 10.0*diff(1)*diff(1));
 }
 
