@@ -452,8 +452,8 @@ namespace engine_test {
     }
     VectorType Control_input_generator(int tick) {
         VectorType res(2);
-//         res << 4*pow(sin(tick/300.0 * 2 * M_PI), 2), 0.8*sin(tick/500.0 * 2 * M_PI);
-        res << 1, 0.2*sin(tick/500.0 * 2 * M_PI);
+        res << 4*pow(sin(tick/300.0 * 2 * M_PI), 2), 0.8*sin(tick/500.0 * 2 * M_PI);
+//         res << 1, 0.2*sin(tick/500.0 * 2 * M_PI);
         return res;
     }
     
