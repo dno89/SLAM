@@ -597,7 +597,8 @@ namespace engine_test {
 					r(2*jj+1, 2*jj+1) = observation_alpha_sigma*observation_alpha_sigma;
 				}
 // 				cerr << r;
-                se.Update(percs, r);
+                std::vector<ProprioceptiveObservation> pp;
+                se.Update(pp, percs, r);
             }
             if(!toAdd.empty()) {
                 for(auto l_index : toAdd) {
@@ -795,7 +796,8 @@ namespace engine_test {
             
             if(!percs.empty()) {
 //                 cerr << "R:\n" << R << endl;
-                se.Update(percs, R);
+                std::vector<ProprioceptiveObservation> pp;
+                se.Update(pp, percs, R);
             }
             if(!toAdd.empty()) {
                 for(auto l_index : toAdd) {
@@ -989,7 +991,8 @@ namespace engine_test {
 //             if(!percs.empty()) {
 //                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
 //             }
-            se.Update(observations, Association::HungarianDataAssociation);
+            std::vector<ProprioceptiveObservation> pp;
+            se.Update(pp, observations, Association::HungarianDataAssociation);
             
             for(int jj = 0; jj < se.GetTrackedLandmarksSize(); ++jj) {
                 tracked_Xm << se.GetLandmarkEstimation(jj).transpose() << " ";
@@ -1179,7 +1182,8 @@ namespace engine_test {
 //             if(!percs.empty()) {
 //                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
 //             }
-            se.Update(observations, Association::HungarianDataAssociation);
+            std::vector<ProprioceptiveObservation> pp;
+            se.Update(pp, observations, Association::HungarianDataAssociation);
             
             for(int jj = 0; jj < se.GetTrackedLandmarksSize(); ++jj) {
                 tracked_Xm << se.GetLandmarkEstimation(jj).transpose() << " ";
@@ -1390,7 +1394,8 @@ namespace engine_test {
                 }
             }
             
-            se.Update(observations, Association::HungarianDataAssociation);
+            std::vector<ProprioceptiveObservation> pp;
+            se.Update(pp, observations, Association::HungarianDataAssociation);
             
             for(int jj = 0; jj < se.GetTrackedLandmarksSize(); ++jj) {
                 tracked_Xm << se.GetLandmarkEstimation(jj).transpose() << " ";
@@ -1570,7 +1575,8 @@ namespace engine_test {
 //             if(!percs.empty()) {
 //                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
 //             }
-            se.Update(observations, Association::HungarianDataAssociation);
+            std::vector<ProprioceptiveObservation> pp;
+            se.Update(pp, observations, Association::HungarianDataAssociation);
             
 //             for(int jj = 0; jj < se.GetTrackedLandmarksSize(); ++jj) {
 //                 tracked_Xm << se.GetLandmarkEstimation(jj).transpose() << " ";

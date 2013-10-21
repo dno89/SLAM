@@ -53,14 +53,14 @@ namespace SLAM {
          * @p perceptions a vector of perception associated with known landmarks
          * @p R the TOTAL covariance matrix for all the perceptions
          */
-        void Update(std::vector<AssociatedPerception>& perceptions, const MatrixType& R);
+        void Update(std::vector<ProprioceptiveObservation>& proprioceptive_observations, std::vector<AssociatedPerception>& perceptions, const MatrixType& R);
         
         /**
          * @brief function that associate the observations with the given function @p AF and call the other version of update
          * @p observations vector containing the raw observation and their covariance
          * @p AF the association function
          */
-        void Update(const std::vector<Observation>& observations, AssociationFunction AF = Association::GreedyDataAssociation);
+        void Update(std::vector<ProprioceptiveObservation>& proprioceptive_observations, const std::vector<Observation>& observations, AssociationFunction AF = Association::GreedyDataAssociation);
         
         /**
          * @brief add a new landmark to the tracked list
@@ -149,6 +149,12 @@ namespace SLAM {
          * @p p the vector of associated perceptions
          * @return the total size of the observation vector
          */
-        int preprocess_perceptions(std::vector<AssociatedPerception>& p);
+        int preprocess_perceptions(std::vector<AssociatedPerception>& p, int initial_offset = 0) const;
+        /**
+         * @brief set the acculumated size for @p pp
+         * @p pp the vector of associated perceptions
+         * @return the total size of the observation vector
+         */
+        int preprocess_proprioceptive_perceptions(std::vector<ProprioceptiveObservation>& pp) const;
     };
 }

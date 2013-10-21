@@ -113,7 +113,7 @@ void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
     DCLOSE_CONTEXT("Predict")
 }
 
-void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const MatrixType& R) {
+void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptive_observations, std::vector<AssociatedPerception>& perceptions, const MatrixType& R) {
     DOPEN_CONTEXT("Update")
 #ifndef NDEBUG
     auto t_start = chrono::high_resolution_clock::now();
@@ -121,11 +121,14 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     
     check();
     
-    const int eta_p = preprocess_perceptions(perceptions);
+    int eta_p = preprocess_proprioceptive_perceptions(proprioceptive_observations);
+    eta_p += preprocess_perceptions(perceptions, eta_p);
     const int p = perceptions.size();
+    const int pp = proprioceptive_observations.size();
     const int eta = m_Pvm.cols();
     
     DTRACE(p)
+    DTRACE(pp)
     DTRACE(eta_p)
     DTRACE(eta)
     DTRACE(m_Xv.transpose())
@@ -133,6 +136,12 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     //the innovation vector
 //     VectorType std_ni(eta_p);
     VectorType ni(eta_p);
+    for(int ii = 0; ii < pp; ++ii) {
+        DPRINT("Predicted proprioceptive observation : " << proprioceptive_observations[ii].PM.H(m_Xv).transpose())
+        DPRINT("Actual proprioceptive observation : " << proprioceptive_observations[ii].Z.transpose())
+        
+        ni.segment(proprioceptive_observations[ii].AccumulatedSize, proprioceptive_observations[ii].Z.rows()) = proprioceptive_observations[ii].PM.Difference(proprioceptive_observations[ii].Z, proprioceptive_observations[ii].PM.H(m_Xv));
+    }
     for(int ii = 0; ii < p; ++ii) {
         DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
         DPRINT("Predicted observation : " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
@@ -148,6 +157,19 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     //the jacobian matrix
     Eigen::SparseMatrix<ScalarType> dH_dX(eta_p, eta + m_XvSize);
     //fill the matrix per block-row
+    for(int kk = 0; kk < pp; ++kk) {
+        MatrixType dH_dXv = proprioceptive_observations[kk].PM.dH_dXv(m_Xv);
+        
+        //set it on the sparse Jacobian
+        //these are the spanned rows
+        for(int ii = proprioceptive_observations[kk].AccumulatedSize; ii < proprioceptive_observations[kk].AccumulatedSize+proprioceptive_observations[kk].Z.rows(); ++ii) {
+            //set the Xv dependent term
+            //these are the spanned columns
+            for(int jj = 0; jj < m_XvSize; ++jj) {
+                dH_dX.insert(ii, jj) = dH_dXv(ii - proprioceptive_observations[kk].AccumulatedSize, jj);
+            }
+        }
+    }
     for(int kk = 0; kk < p; ++kk) {
         //the jacobian wrt the vehicle state: a (Mjkk)x(Nv) matrix
         MatrixType dH_dXv = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXv(m_Xv);
@@ -251,7 +273,7 @@ void EKFSLAMEngine::Update(std::vector<AssociatedPerception>& perceptions, const
     DCLOSE_CONTEXT("Update")
 }
 
-void EKFSLAMEngine::Update(const std::vector<Observation>& observations, AssociationFunction AF) {
+void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptive_observations, const std::vector<Observation>& observations, AssociationFunction AF) {
     DOPEN_CONTEXT("Update")
 #ifndef NDEBUG
     auto t_start = chrono::high_resolution_clock::now();
@@ -274,6 +296,16 @@ void EKFSLAMEngine::Update(const std::vector<Observation>& observations, Associa
     
     int ob_size = 0;
     
+    //add the covariance of proprioceptive observations
+    for(int ii = 0; ii < proprioceptive_observations.size(); ++ii) {
+        ob_size = proprioceptive_observations[ii].Z.rows();
+        
+        R.conservativeResize(R.rows() + ob_size, R.cols() + ob_size);
+        R.rightCols(ob_size) = MatrixXd::Zero(R.rows(), ob_size);
+        R.bottomRows(ob_size) = MatrixXd::Zero(ob_size, R.cols());
+        R.bottomRightCorner(ob_size, ob_size) = proprioceptive_observations[ii].Pz;
+    }
+        
     for(auto la : assoc) {
         if(la.LandmarkIndex >= 0) {
             //known landmark
@@ -292,8 +324,8 @@ void EKFSLAMEngine::Update(const std::vector<Observation>& observations, Associa
     }
     
     //update with the given observations
-    if(!ap.empty()) {
-        Update(ap, R);
+    if(!ap.empty() || !proprioceptive_observations.empty()) {
+        Update(proprioceptive_observations, ap, R);
     }
     
     //add the new landmarks
@@ -400,11 +432,21 @@ inline void EKFSLAMEngine::check() {
     if(!m_init) throw std::runtime_error("SLAMEngine ERROR: a function has been called with the object not propertly initialize (call Setup before using the object)\n");
 }
 
-inline int EKFSLAMEngine::preprocess_perceptions(std::vector<AssociatedPerception>& p) {
-    int accum = 0;
+inline int EKFSLAMEngine::preprocess_perceptions(std::vector<AssociatedPerception>& p, int initial_offset) const {
+    int accum = initial_offset;
     for(int ii = 0; ii < p.size(); ++ii) {
         p[ii].AccumulatedSize = accum;
         accum += p[ii].Z.rows();
+    }
+    
+    return accum;
+}
+
+inline int EKFSLAMEngine::preprocess_proprioceptive_perceptions(std::vector<ProprioceptiveObservation>& pp) const {
+    int accum = 0;
+    for(int ii = 0; ii < pp.size(); ++ii) {
+        pp[ii].AccumulatedSize = accum;
+        accum += pp[ii].Z.rows();
     }
     
     return accum;

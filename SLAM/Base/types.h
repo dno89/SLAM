@@ -425,19 +425,18 @@ namespace SLAM {
     };
     
     /**
-     * @class LandmarkModel a class that incapsulate the vehicle model and its Jacobian
+     * @class ProprioceptiveModel a class that incapsulate the vehicle model and its Jacobian
      */
     class ProprioceptiveModel {
     public:
         ////typedef
         typedef VectorType VehicleStateType;
-        typedef VectorType InputType;
         typedef VectorType ObservationType;
         /**
          * @note the first argument is the vehicle state, the second is the control input
          */
-        typedef ObservationType (*ObservationFunction)(const VehicleStateType&, const InputType&);
-        typedef MatrixType (*ObservationJacobian)(const VehicleStateType&, const InputType&);
+        typedef ObservationType (*ObservationFunction)(const VehicleStateType&);
+        typedef MatrixType (*ObservationJacobian)(const VehicleStateType&);
         typedef VectorType (*DifferenceFunction)(const ObservationType&, const ObservationType&);
         
         ////constructor
@@ -454,17 +453,17 @@ namespace SLAM {
         /**
          * @brief empty constructor
          */
-        LandmarkPerceptionModel() {}
+        ProprioceptiveModel() {}
         /**
          * @brief default copy constructor
          */
-        LandmarkPerceptionModel(const LandmarkPerceptionModel&) = default;
+        ProprioceptiveModel(const ProprioceptiveModel&) = default;
         /**
          * @brief default copy operator
          */
-        LandmarkPerceptionModel& operator=(const LandmarkPerceptionModel&) = default;
+        ProprioceptiveModel& operator=(const ProprioceptiveModel&) = default;
         
-        bool operator==(const LandmarkPerceptionModel& m) {
+        bool operator==(const ProprioceptiveModel& m) {
             return  m_H == m.m_H &&
                     m_dH_dXv == m.m_dH_dXv;
         }
@@ -479,23 +478,23 @@ namespace SLAM {
         /**
          * @brief compare operator required by the std::map
          */
-        friend bool operator<(const LandmarkPerceptionModel& m1, const LandmarkPerceptionModel& m2) {
+        friend bool operator<(const ProprioceptiveModel& m1, const ProprioceptiveModel& m2) {
             return m1.m_H < m2.m_H;
         }
         
         /**
          * @note Wrapper for H, dH_dXv and dH_dXm functions
          */
-        ObservationType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-            check("LandmarkModel::H ERROR: functions not initialized\n");
-            return (*m_H)(Xv, Xm);
+        ObservationType H(const VehicleStateType& Xv) const {
+            check("ProprioceptiveModel::H ERROR: functions not initialized\n");
+            return (*m_H)(Xv);
         }
-        MatrixType dH_dXv(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-            check("LandmarkModel::dH_dXv ERROR: functions not initialized\n");
-            return (*m_dH_dXv)(Xv, Xm);
+        MatrixType dH_dXv(const VehicleStateType& Xv) const {
+            check("ProprioceptiveModel::dH_dXv ERROR: functions not initialized\n");
+            return (*m_dH_dXv)(Xv);
         }
         VectorType Difference(const ObservationType& v1, const ObservationType& v2) const {
-            check("LandmarkModel::Difference ERROR: functions not initialized\n");
+            check("ProprioceptiveModel::Difference ERROR: functions not initialized\n");
             return (*m_difference)(v1, v2);
         }
     private:
@@ -510,5 +509,23 @@ namespace SLAM {
                 throw std::runtime_error(str);
             }
         }
+    };
+    
+    /**
+     * @brief simple struct that contains a perception and the associated covariance.
+     */
+    struct ProprioceptiveObservation {
+        ProprioceptiveObservation() {}
+        ProprioceptiveObservation(const VectorType& z, const MatrixType& pz, const ProprioceptiveModel& pm) : Z(z), Pz(pz), PM(pm)
+            {} 
+        
+        //the raw perception
+        VectorType Z;
+        //the covariance matrix for this perception
+        MatrixType Pz;
+        //the landmark model
+        ProprioceptiveModel PM;
+        //the accumulated size: used by the engine
+        int AccumulatedSize;
     };
 }
