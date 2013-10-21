@@ -423,4 +423,92 @@ namespace SLAM {
         int ObservationIndex;
         int LandmarkIndex;
     };
+    
+    /**
+     * @class LandmarkModel a class that incapsulate the vehicle model and its Jacobian
+     */
+    class ProprioceptiveModel {
+    public:
+        ////typedef
+        typedef VectorType VehicleStateType;
+        typedef VectorType InputType;
+        typedef VectorType ObservationType;
+        /**
+         * @note the first argument is the vehicle state, the second is the control input
+         */
+        typedef ObservationType (*ObservationFunction)(const VehicleStateType&, const InputType&);
+        typedef MatrixType (*ObservationJacobian)(const VehicleStateType&, const InputType&);
+        typedef VectorType (*DifferenceFunction)(const ObservationType&, const ObservationType&);
+        
+        ////constructor
+        /**
+         * @brief proper initialization for the structure
+         * @p h the observation model function that gives the observation given the vehicle and landmark state
+         * @p dh_dxv the Jacobian of @p h computed wrt the vehicle state Xv
+         * @p dh_dxm the Jacobian of @p h computed wrt the landmark state Xm
+         * @p distance a function that, given 2 perceptions returns a vector representing the distance, component by component, between the two.
+         */
+        ProprioceptiveModel(ObservationFunction h, ObservationJacobian dh_dxv, DifferenceFunction difference = Models::DefaultDifference) : m_H(h), m_dH_dXv(dh_dxv), m_difference(difference) {
+            check("ProprioceptiveModel::ProprioceptiveModel(ObservationFunction,ObservationJacobian,DifferenceFunction) ERROR: h and dh_dxv must be non-NULL!\n");
+        }
+        /**
+         * @brief empty constructor
+         */
+        LandmarkPerceptionModel() {}
+        /**
+         * @brief default copy constructor
+         */
+        LandmarkPerceptionModel(const LandmarkPerceptionModel&) = default;
+        /**
+         * @brief default copy operator
+         */
+        LandmarkPerceptionModel& operator=(const LandmarkPerceptionModel&) = default;
+        
+        bool operator==(const LandmarkPerceptionModel& m) {
+            return  m_H == m.m_H &&
+                    m_dH_dXv == m.m_dH_dXv;
+        }
+        
+        /**
+         * @brief check whether the object has been properly initialized
+         */
+        operator bool() const {
+            return m_H && m_dH_dXv && m_difference;
+        }
+        
+        /**
+         * @brief compare operator required by the std::map
+         */
+        friend bool operator<(const LandmarkPerceptionModel& m1, const LandmarkPerceptionModel& m2) {
+            return m1.m_H < m2.m_H;
+        }
+        
+        /**
+         * @note Wrapper for H, dH_dXv and dH_dXm functions
+         */
+        ObservationType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
+            check("LandmarkModel::H ERROR: functions not initialized\n");
+            return (*m_H)(Xv, Xm);
+        }
+        MatrixType dH_dXv(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
+            check("LandmarkModel::dH_dXv ERROR: functions not initialized\n");
+            return (*m_dH_dXv)(Xv, Xm);
+        }
+        VectorType Difference(const ObservationType& v1, const ObservationType& v2) const {
+            check("LandmarkModel::Difference ERROR: functions not initialized\n");
+            return (*m_difference)(v1, v2);
+        }
+    private:
+        ////data
+        ObservationFunction m_H = nullptr;
+        ObservationJacobian m_dH_dXv = nullptr;
+        DifferenceFunction m_difference = nullptr;
+        
+        ////function
+        void check(const char* str) const {
+            if(!(m_H && m_dH_dXv && m_difference)) {
+                throw std::runtime_error(str);
+            }
+        }
+    };
 }

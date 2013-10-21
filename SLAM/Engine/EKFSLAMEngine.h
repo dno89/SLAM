@@ -131,10 +131,6 @@ namespace SLAM {
         //the vehicle model with Jacobian
         VehicleModel m_vModel;
         
-        //STATE OBSERVATION
-        ///TODO
-//         std::vector<>
-        
         //LANDMARKS
         std::vector<Landmark> m_landmarks;
         
