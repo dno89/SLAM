@@ -121,8 +121,9 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     
     check();
     
-    int eta_p = preprocess_proprioceptive_perceptions(proprioceptive_observations);
-    eta_p += preprocess_perceptions(perceptions, eta_p);
+//     const int eta_p = preprocess_proprioceptive_perceptions(proprioceptive_observations);
+    const int eta_p = preprocess_perceptions(perceptions, preprocess_proprioceptive_perceptions(proprioceptive_observations));
+//     eta_p += preprocess_perceptions(perceptions, eta_p);
     const int p = perceptions.size();
     const int pp = proprioceptive_observations.size();
     const int eta = m_Pvm.cols();
@@ -200,7 +201,7 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     
 #ifndef NDEBUG
     MatrixType dense_dH_dX = dH_dX;
-//     DTRACE_L(dense_dH_dX)
+    DTRACE_L(dense_dH_dX)
 #endif
     
     //the total P matrix
@@ -279,8 +280,8 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     auto t_start = chrono::high_resolution_clock::now();
 #endif  //NDEBUG
     
-    if(observations.empty()) {
-        DWARNING("Empty observations")
+    if(observations.empty() && proprioceptive_observations.empty()) {
+        DWARNING("Empty exteroceptive and proprioceptive observations")
         DCLOSE_CONTEXT("Update")
         
         return;
@@ -305,6 +306,8 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
         R.bottomRows(ob_size) = MatrixXd::Zero(ob_size, R.cols());
         R.bottomRightCorner(ob_size, ob_size) = proprioceptive_observations[ii].Pz;
     }
+    
+    DPRINT("With proprioceptive covariance:\n" << R)
         
     for(auto la : assoc) {
         if(la.LandmarkIndex >= 0) {
@@ -322,6 +325,8 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
             new_landmark.push_back(observations[la.ObservationIndex]);
         }
     }
+    
+    DTRACE_L(R)
     
     //update with the given observations
     if(!ap.empty() || !proprioceptive_observations.empty()) {

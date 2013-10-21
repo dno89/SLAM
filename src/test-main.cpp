@@ -1199,9 +1199,9 @@ namespace engine_test {
 //             }
             std::vector<ProprioceptiveObservation> pp;
             MatrixType pp_P(3, 3);
-            pp_P << state_pos_sigma*state_pos_sigma/4*ii, 0, 0,
-                    0, state_pos_sigma*state_pos_sigma/4*ii, 0,
-                    0, 0, state_ang_sigma*state_ang_sigma/4*ii;
+            pp_P << state_pos_sigma*state_pos_sigma/4*(ii+1), 0, 0,
+                    0, state_pos_sigma*state_pos_sigma/4*(ii+1), 0,
+                    0, 0, state_ang_sigma*state_ang_sigma/4*(ii+1);
             pp.push_back(ProprioceptiveObservation(Odometry, pp_P, Models::IntegratedOdometryModel));
             se.Update(pp, observations, Association::HungarianDataAssociation);
             
