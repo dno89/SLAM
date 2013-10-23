@@ -15,9 +15,11 @@ add_library(slam STATIC src/SLAM/Engine/EKFSLAMEngine.cpp src/SLAM/DataAssociati
 
 target_link_libraries(slam boost_date_time)
 
+install(TARGETS slam ARCHIVE DESTINATION lib)
+install(DIRECTORY include/SLAM DESTINATION include)
 
 
 ## TEST PROGRAM ##
 add_executable(slam_test src/test-main.cpp src/SLAM/DataAssociation/hungarian.c)
 target_link_libraries(slam_test slam)
-install(TARGETS slam_test RUNTIME DESTINATION bin)
+#install(TARGETS slam_test RUNTIME DESTINATION bin)
