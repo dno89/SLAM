@@ -6,7 +6,7 @@
 
 ////include
 //SLAM
-#include "SimpleUnicycle.h"
+#include <SLAM/Vehicle/SimpleUnicycle.h>
 
 using namespace SLAM;
 using namespace Eigen;

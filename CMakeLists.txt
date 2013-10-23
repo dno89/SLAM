@@ -18,6 +18,6 @@ target_link_libraries(slam boost_date_time)
 
 
 ## TEST PROGRAM ##
-add_executable(slam_test src/test-main.cpp SLAM/DataAssociation/hungarian.c)
+add_executable(slam_test src/test-main.cpp src/SLAM/DataAssociation/hungarian.c)
 target_link_libraries(slam_test slam)
 install(TARGETS slam_test RUNTIME DESTINATION bin)

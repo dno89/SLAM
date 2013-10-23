@@ -6,13 +6,13 @@
 
 ////include
 //SLAM
-#include "../Base/core.cpp"
-#include "../Base/DMDebug.h"
-#include "DataAssociation.h"
-#include "../Engine/EKFSLAMEngine.h"
-#include "SequentialAssociator.hpp"
+#include <SLAM/Base/core.h>
+#include <SLAM/Base/DMDebug.h>
+#include <SLAM/DataAssociation/DataAssociation.h>
+#include <SLAM/Engine/EKFSLAMEngine.h>
+#include <SLAM/DataAssociation/SequentialAssociator.hpp>
 extern "C" {
-#include "hungarian.h"
+#include <SLAM/DataAssociation/hungarian.h>
 }
 //std
 #include <limits>

@@ -6,8 +6,8 @@
 
 ////include
 //SLAM
-#include "CartesianPointLandmark.h"
-#include "../Base/DMDebug.h"
+#include <SLAM/Landmark/CartesianPointLandmark.h>
+#include <SLAM/Base/DMDebug.h>
 //std
 #include <cmath>
 

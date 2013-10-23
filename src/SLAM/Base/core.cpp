@@ -6,7 +6,7 @@
 
 ////include
 //SLAM
-#include "core.h"
+#include <SLAM/Base/core.h>
 
 namespace SLAM { namespace Models {
 

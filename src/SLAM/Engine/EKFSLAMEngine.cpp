@@ -6,8 +6,8 @@
 
 ////include
 //SLAM
-#include "EKFSLAMEngine.h"
-#include "../Base/DMDebug.h"
+#include <SLAM/Engine/EKFSLAMEngine.h>
+#include <SLAM/Base/DMDebug.h>
 //std
 #include <stdexcept>
 #include <cassert>

@@ -6,8 +6,8 @@
 
 ////include
 //SLAM
-#include "PolarLineLandmark.h"
-#include "../Base/DMDebug.h"
+#include <SLAM/Landmark/PolarLineLandmark.h>
+#include <SLAM/Base/DMDebug.h>
 // #include "../DataAssociation/DataAssociation.h"
 //std
 #include <cmath>

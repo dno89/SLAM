@@ -9,14 +9,14 @@
 #include <strstream>
 #include <fstream>
 //SLAM
-#include "../SLAM/SLAM.h"
-#include "../SLAM/Vehicle/SimpleUnicycle.h"
-#include "../SLAM/Landmark/PolarPointLandmark.h"
-#include "../SLAM/Landmark/PolarLineLandmark.h"
-#include "../SLAM/Landmark/CartesianPointLandmark.h"
-#include "../SLAM/ProprioceptiveSensor/IntegratedOdometry.h"
+#include <SLAM/SLAM.h>
+#include <SLAM/Vehicle/SimpleUnicycle.h>
+#include <SLAM/Landmark/PolarPointLandmark.h>
+#include <SLAM/Landmark/PolarLineLandmark.h>
+#include <SLAM/Landmark/CartesianPointLandmark.h>
+#include <SLAM/ProprioceptiveSensor/IntegratedOdometry.h>
 extern "C" {
-#include "../SLAM/DataAssociation/hungarian.h"
+#include <SLAM/DataAssociation/hungarian.h>
 }
 //Eigen
 #include <Eigen/Sparse>

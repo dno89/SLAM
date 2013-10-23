@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "hungarian.h"
+#include <SLAM/DataAssociation/hungarian.h>
 
 #define INF (0x7FFFFFFF)
 #define verbose (0)
