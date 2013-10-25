@@ -23,7 +23,7 @@ namespace SLAM { namespace Models { namespace Tricycle {
      * Xv = (X, Y, Theta)^t
      * U = (V, Delta)^t
      * 
-     * Where V is the linear speed and Delta is the steering angle.
+     * Where V is the linear speed and Delta is the steering angle of the motor wheel.
      */
     ////model functions
     VectorType F(const VectorType& Xv, const VectorType& U);
