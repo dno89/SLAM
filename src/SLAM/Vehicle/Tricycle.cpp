@@ -6,7 +6,7 @@
 
 ////include
 //SLAM
-#include "Tricycle.h"
+#include <SLAM/Vehicle/Tricycle.h>
 
 using namespace SLAM;
 using namespace Eigen;
