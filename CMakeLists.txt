@@ -11,7 +11,7 @@ include_directories(include/)
 #cmake_minimum_required(VERSION 2.0)
 #add_definitions(-std=c++0x -DEKFSLAM_ENABLE_TEST)
 
-add_library(slam STATIC src/SLAM/Engine/EKFSLAMEngine.cpp src/SLAM/DataAssociation/DataAssociation.cpp src/SLAM/DataAssociation/hungarian.c src/SLAM/Base/core.cpp src/SLAM/Vehicle/SimpleUnicycle.cpp src/SLAM/Vehicle/Tricycle.cpp src/SLAM/Landmark/PolarPointLandmark.cpp src/SLAM/Landmark/CartesianPointLandmark.cpp src/SLAM/Landmark/PolarLineLandmark.cpp src/SLAM/ProprioceptiveSensor/IntegratedOdometry.cpp)
+add_library(slam STATIC src/SLAM/Engine/EKFSLAMEngine.cpp src/SLAM/DataAssociation/DataAssociation.cpp src/SLAM/DataAssociation/hungarian.c src/SLAM/Base/core.cpp src/SLAM/Base/types.cpp src/SLAM/Vehicle/SimpleUnicycle.cpp src/SLAM/Vehicle/Tricycle.cpp src/SLAM/Landmark/PolarPointLandmark.cpp src/SLAM/Landmark/CartesianPointLandmark.cpp src/SLAM/Landmark/PolarLineLandmark.cpp src/SLAM/ProprioceptiveSensor/IntegratedOdometry.cpp)
 
 target_link_libraries(slam boost_date_time)
 

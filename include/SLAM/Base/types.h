@@ -36,15 +36,11 @@ namespace SLAM {
          * @p f the vehicle model function that update the state in function of previous state and control input
          * @p df_dxv the Jacobian of @p f computed wrt the vehicle state Xv
          */
-        VehicleModel(VehicleFunction f, VehicleJacobian df_dxv) : m_F(f), m_dF_dXv(df_dxv) {
-            if(!(m_F && m_dF_dXv)) {
-                throw std::runtime_error("VehicleModel::VehicleModel(VehicleFunction,VehicleJacobian) ERROR: f and df_dxv must be non-NULL!\n");
-            }
-        }
+        VehicleModel(VehicleFunction f, VehicleJacobian df_dxv);
         /**
          * @brief empty constructor
          */
-        VehicleModel() /*: m_F(nullptr), m_dF_dXv(nullptr)*/ {}
+        VehicleModel();
         /**
          * @brief default copy constructor
          */
@@ -57,27 +53,13 @@ namespace SLAM {
         /**
          * @brief check whether the object has been properly initialized
          */
-        operator bool() const {
-            return m_F && m_dF_dXv;
-        }
+        operator bool() const;
         
         /**
          * @note Wrapper for F and dF_dXv function
          */
-        VectorType F(const VectorType& Xv, const VectorType& U) const {
-             if(!(m_F && m_dF_dXv)) {
-                throw std::runtime_error("VehicleModel::F ERROR: structure not initialized\n");
-            }
-            
-            return (*m_F)(Xv, U);
-        }
-        MatrixType dF_dXv(const VectorType& Xv, const VectorType& U) const {
-             if(!(m_F && m_dF_dXv)) {
-                throw std::runtime_error("VehicleModel::F ERROR: structure not initialized\n");
-            }
-            
-            return (*m_dF_dXv)(Xv, U);
-        }
+        VectorType F(const VectorType& Xv, const VectorType& U) const;
+        MatrixType dF_dXv(const VectorType& Xv, const VectorType& U) const;
         
     private:
         ////data
@@ -112,13 +94,11 @@ namespace SLAM {
          * @p dh_dxm the Jacobian of @p h computed wrt the landmark state Xm
          * @p distance a function that, given 2 perceptions returns a vector representing the distance, component by component, between the two.
          */
-        LandmarkPerceptionModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DifferenceFunction difference = Models::DefaultDifference, DistanceFunction distance = Models::DefaultDistance, SortFunction sort = Models::DefaultSort, NormalizeFunction normalize = Models::DefaultNormalize) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm), m_difference(difference), m_distance(distance), m_sort(sort), m_normalize(normalize) {
-            check("LandmarkModel::LandmarkModel(ObservationFunction,ObservationJacobian,ObservationJacobian) ERROR: h, dh_dxv and df_dxm must be non-NULL!\n");
-        }
+        LandmarkPerceptionModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DifferenceFunction difference = Models::DefaultDifference, DistanceFunction distance = Models::DefaultDistance, SortFunction sort = Models::DefaultSort, NormalizeFunction normalize = Models::DefaultNormalize);
         /**
          * @brief empty constructor
          */
-        LandmarkPerceptionModel() {}
+        LandmarkPerceptionModel();
         /**
          * @brief default copy constructor
          */
@@ -128,60 +108,30 @@ namespace SLAM {
          */
         LandmarkPerceptionModel& operator=(const LandmarkPerceptionModel&) = default;
         
-        bool operator==(const LandmarkPerceptionModel& m) {
-            return  m_H == m.m_H &&
-                    m_dH_dXm == m.m_dH_dXm &&
-                    m_dH_dXv == m.m_dH_dXv;
-        }
+        bool operator==(const LandmarkPerceptionModel& m);
         
         /**
          * @brief check whether the object has been properly initialized
          */
-        operator bool() const {
-            return m_H && m_dH_dXm && m_dH_dXv && m_distance && m_difference && m_sort && m_normalize;
-        }
+        operator bool() const;
         
         /**
          * @brief compare operator required by the std::map
          */
-        friend bool operator<(const LandmarkPerceptionModel& m1, const LandmarkPerceptionModel& m2) {
+        friend bool operator<(const LandmarkPerceptionModel& m1, const LandmarkPerceptionModel& m2)  {
             return m1.m_H < m2.m_H;
         }
         
         /**
          * @note Wrapper for H, dH_dXv and dH_dXm functions
          */
-        ObservationType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-            check("LandmarkModel::H ERROR: functions not initialized\n");
-            return (*m_H)(Xv, Xm);
-        }
-        MatrixType dH_dXv(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-            check("LandmarkModel::dH_dXv ERROR: functions not initialized\n");
-            return (*m_dH_dXv)(Xv, Xm);
-        }
-        MatrixType dH_dXm(const VehicleStateType& Xv, const LandmarkStateType& Xm) const {
-            check("LandmarkModel::dH_dXm ERROR: functions not initialized\n");
-            return (*m_dH_dXm)(Xv, Xm);
-        }
-        VectorType Difference(const ObservationType& v1, const ObservationType& v2) const {
-            check("LandmarkModel::Difference ERROR: functions not initialized\n");
-            return (*m_difference)(v1, v2);
-        }
-        ScalarType Distance(const ObservationType& v1, const ObservationType& v2) const {
-            check("LandmarkModel::Distance ERROR: functions not initialized\n");
-            return (*m_distance)(v1, v2);
-        }
-        bool Sort(const ObservationType& v1, const ObservationType& v2) const {
-            check("LandmarkModel::Sort ERROR: functions not initialized\n");
-            return (*m_sort)(v1, v2);
-        }
-        VectorType Normalize(const ObservationType& v) const {
-            if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance && m_difference && m_sort && m_normalize)) {
-                throw std::runtime_error("LandmarkModel::Distance ERROR: functions not initialized\n");
-            }
-            
-            return (*m_normalize)(v);
-        }
+        ObservationType H(const VehicleStateType& Xv, const LandmarkStateType& Xm) const;
+        MatrixType dH_dXv(const VehicleStateType& Xv, const LandmarkStateType& Xm) const;
+        MatrixType dH_dXm(const VehicleStateType& Xv, const LandmarkStateType& Xm) const;
+        VectorType Difference(const ObservationType& v1, const ObservationType& v2) const;
+        ScalarType Distance(const ObservationType& v1, const ObservationType& v2) const;
+        bool Sort(const ObservationType& v1, const ObservationType& v2) const;
+        VectorType Normalize(const ObservationType& v) const;
         
     private:
         ////data
@@ -194,11 +144,7 @@ namespace SLAM {
         NormalizeFunction m_normalize = nullptr;
         
         ////function
-        void check(const char* str) const {
-            if(!(m_H && m_dH_dXm && m_dH_dXv && m_distance && m_difference && m_sort && m_normalize)) {
-                throw std::runtime_error(str);
-            }
-        }
+        void check(const char* str) const;
     };
     
     /**
@@ -223,15 +169,11 @@ namespace SLAM {
          * @p dg_dxv the Jacobian of @p g computed wrt the vehicle state Xv
          * @p dg_dz the Jacobian of @p g computed wrt the observation Z
          */
-        LandmarkInitializationModel(InitializationFunction g, InitializationJacobian dg_dxv, InitializationJacobian dg_dz) : m_G(g), m_dG_dXv(dg_dxv), m_dG_dZ(dg_dz) {
-            if(!(m_G && m_dG_dZ && m_dG_dXv)) {
-                throw std::runtime_error("LandmarkInitializationModel::LandmarkInitializationModel(InitializationFunction,InitializationJacobian,InitializationJacobian) ERROR: g, dg_dxv and dg_dz must be non-NULL!\n");
-            }
-        }
+        LandmarkInitializationModel(InitializationFunction g, InitializationJacobian dg_dxv, InitializationJacobian dg_dz);
         /**
          * @brief empty constructor
          */
-        LandmarkInitializationModel() {}
+        LandmarkInitializationModel();
         /**
          * @brief default copy constructor
          */
@@ -244,34 +186,14 @@ namespace SLAM {
         /**
          * @brief check whether the object has been properly initialized
          */
-        operator bool() const {
-            return m_G && m_dG_dZ && m_dG_dXv;
-        }
+        operator bool() const;
         
         /**
          * @note Wrapper for G, dG_dXv and dG_dZ functions
          */
-        LandmarkStateType G(const VehicleStateType& Xv, const ObservationType& Z) const {
-             if(!(m_G && m_dG_dZ && m_dG_dXv)) {
-                throw std::runtime_error("LandmarkInitializationModel::H ERROR: functions not initialized\n");
-            }
-            
-            return (*m_G)(Xv, Z);
-        }
-        MatrixType dG_dXv(const VehicleStateType& Xv, const ObservationType& Z) const {
-             if(!(m_G && m_dG_dZ && m_dG_dXv)) {
-                throw std::runtime_error("LandmarkInitializationModel::dH_dXv ERROR: functions not initialized\n");
-            }
-            
-            return (*m_dG_dXv)(Xv, Z);
-        }
-        MatrixType dG_dZ(const VehicleStateType& Xv, const ObservationType& Z) const {
-             if(!(m_G && m_dG_dZ && m_dG_dXv)) {
-                throw std::runtime_error("LandmarkInitializationModel::dH_dZ ERROR: functions not initialized\n");
-            }
-            
-            return (*m_dG_dZ)(Xv, Z);
-        }
+        LandmarkStateType G(const VehicleStateType& Xv, const ObservationType& Z) const;
+        MatrixType dG_dXv(const VehicleStateType& Xv, const ObservationType& Z) const;
+        MatrixType dG_dZ(const VehicleStateType& Xv, const ObservationType& Z) const;
         
     private:
         ////data
@@ -285,9 +207,8 @@ namespace SLAM {
      */
     struct LandmarkModel {
         ////constructors
-        LandmarkModel() {}
-        LandmarkModel(const LandmarkPerceptionModel& lpm, const LandmarkInitializationModel& lim) : 
-            LPM(lpm), LIM(lim) {}
+        LandmarkModel();
+        LandmarkModel(const LandmarkPerceptionModel& lpm, const LandmarkInitializationModel& lim);
         LandmarkModel(const LandmarkModel&) = default;
         ////assignment
         LandmarkModel& operator=(const LandmarkModel&) = default;
@@ -311,8 +232,7 @@ namespace SLAM {
         const LandmarkPerceptionModel m_lm;
         const VectorType& m_ls;
     public:
-        RestrainedLandmarkModel(const LandmarkPerceptionModel& landmark_model, const VectorType& landmark_state) :
-            m_lm(landmark_model), m_ls(landmark_state) {}
+        RestrainedLandmarkModel(const LandmarkPerceptionModel& landmark_model, const VectorType& landmark_state);
         RestrainedLandmarkModel(const RestrainedLandmarkModel&) = delete;
         RestrainedLandmarkModel& operator=(const RestrainedLandmarkModel&) = delete;
             
@@ -321,28 +241,16 @@ namespace SLAM {
         typedef VectorType ObservationType;
         
         ////INTERFACE
-        ObservationType H(const VehicleStateType& Xv) const {
-             return m_lm.H(Xv, m_ls);
-        }
-        MatrixType dH_dXv(const VehicleStateType& Xv) const {
-            return m_lm.dH_dXv(Xv, m_ls);
-        }
-        MatrixType dH_dXm(const VehicleStateType& Xv) const {
-             return m_lm.dH_dXm(Xv, m_ls);
-        }
-        ScalarType Distance(const ObservationType& v1, const ObservationType& v2) const {
-            return m_lm.Distance(v1, v2);
-        }
-        VectorType Difference(const ObservationType& v1, const ObservationType& v2) const {
-            return m_lm.Difference(v1, v2);
-        }
-        VectorType Normalize(const ObservationType& v) const {
-            return m_lm.Normalize(v);
-        }
+        ObservationType H(const VehicleStateType& Xv) const;
+        MatrixType dH_dXv(const VehicleStateType& Xv) const;
+        MatrixType dH_dXm(const VehicleStateType& Xv) const;
+        ScalarType Distance(const ObservationType& v1, const ObservationType& v2) const;
+        VectorType Difference(const ObservationType& v1, const ObservationType& v2) const;
+        VectorType Normalize(const ObservationType& v) const;
         
-        const LandmarkPerceptionModel& GetModel() const { return m_lm; }
+        const LandmarkPerceptionModel& GetModel() const;
         
-        operator const LandmarkPerceptionModel&() const { return m_lm; }
+        operator const LandmarkPerceptionModel&() const;
     };
     
     /**
@@ -350,11 +258,9 @@ namespace SLAM {
      * @brief keep together various information related to a single landmark
      */
     struct Landmark {
-        Landmark(const VectorType& state, const LandmarkPerceptionModel& model) :
-            AccumulatedSize(0), Xm(state), Model(model, Xm) {}
+        Landmark(const VectorType& state, const LandmarkPerceptionModel& model);
             
-        Landmark(const Landmark& l) : AccumulatedSize(l.AccumulatedSize), Xm(l.Xm), Model(l.Model.GetModel(), Xm)
-            {}
+        Landmark(const Landmark& l);
         
         Landmark& operator=(const Landmark& l) = delete;
         
@@ -370,11 +276,9 @@ namespace SLAM {
      * @brief simple struct that contains a perception and the associated covariance.
      */
     struct Observation {
-        Observation() {}
-        Observation(const VectorType& z, const MatrixType& pz, const LandmarkModel& lm) : Z(z), Pz(pz), LM(lm)
-            {} 
-        Observation(const VectorType& z, const MatrixType& pz, const LandmarkPerceptionModel& lpm, const LandmarkInitializationModel& lim) : Z(z), Pz(pz), LM(lpm, lim) 
-            {}
+        Observation();
+        Observation(const VectorType& z, const MatrixType& pz, const LandmarkModel& lm);
+        Observation(const VectorType& z, const MatrixType& pz, const LandmarkPerceptionModel& lpm, const LandmarkInitializationModel& lim);
         
         //the raw perception
         VectorType Z;
@@ -401,8 +305,7 @@ namespace SLAM {
      */
     struct AssociatedPerception {
 //         AssociatedPerception() {}
-        AssociatedPerception(const VectorType& observation, int associated_index) :
-            Z(observation), AssociatedIndex(associated_index), AccumulatedSize(0) {}
+        AssociatedPerception(const VectorType& observation, int associated_index);
         
         //the perception
         VectorType Z;
@@ -416,9 +319,7 @@ namespace SLAM {
      * @brief simple pair with more meaningful names
      */
     struct LandmarkAssociation {
-        LandmarkAssociation(int observation_index = -1, int landmark_index = -1) : 
-            ObservationIndex(observation_index), LandmarkIndex(landmark_index) 
-            {}
+        LandmarkAssociation(int observation_index = -1, int landmark_index = -1);
         
         int ObservationIndex;
         int LandmarkIndex;
@@ -447,13 +348,11 @@ namespace SLAM {
          * @p dh_dxm the Jacobian of @p h computed wrt the landmark state Xm
          * @p distance a function that, given 2 perceptions returns a vector representing the distance, component by component, between the two.
          */
-        ProprioceptiveModel(ObservationFunction h, ObservationJacobian dh_dxv, DifferenceFunction difference = Models::DefaultDifference) : m_H(h), m_dH_dXv(dh_dxv), m_difference(difference) {
-            check("ProprioceptiveModel::ProprioceptiveModel(ObservationFunction,ObservationJacobian,DifferenceFunction) ERROR: h and dh_dxv must be non-NULL!\n");
-        }
+        ProprioceptiveModel(ObservationFunction h, ObservationJacobian dh_dxv, DifferenceFunction difference = Models::DefaultDifference);
         /**
          * @brief empty constructor
          */
-        ProprioceptiveModel() {}
+        ProprioceptiveModel();
         /**
          * @brief default copy constructor
          */
@@ -463,17 +362,12 @@ namespace SLAM {
          */
         ProprioceptiveModel& operator=(const ProprioceptiveModel&) = default;
         
-        bool operator==(const ProprioceptiveModel& m) {
-            return  m_H == m.m_H &&
-                    m_dH_dXv == m.m_dH_dXv;
-        }
+        bool operator==(const ProprioceptiveModel& m);
         
         /**
          * @brief check whether the object has been properly initialized
          */
-        operator bool() const {
-            return m_H && m_dH_dXv && m_difference;
-        }
+        operator bool() const;
         
         /**
          * @brief compare operator required by the std::map
@@ -485,18 +379,9 @@ namespace SLAM {
         /**
          * @note Wrapper for H, dH_dXv and dH_dXm functions
          */
-        ObservationType H(const VehicleStateType& Xv) const {
-            check("ProprioceptiveModel::H ERROR: functions not initialized\n");
-            return (*m_H)(Xv);
-        }
-        MatrixType dH_dXv(const VehicleStateType& Xv) const {
-            check("ProprioceptiveModel::dH_dXv ERROR: functions not initialized\n");
-            return (*m_dH_dXv)(Xv);
-        }
-        VectorType Difference(const ObservationType& v1, const ObservationType& v2) const {
-            check("ProprioceptiveModel::Difference ERROR: functions not initialized\n");
-            return (*m_difference)(v1, v2);
-        }
+        ObservationType H(const VehicleStateType& Xv) const;
+        MatrixType dH_dXv(const VehicleStateType& Xv) const;
+        VectorType Difference(const ObservationType& v1, const ObservationType& v2) const;
     private:
         ////data
         ObservationFunction m_H = nullptr;
@@ -504,20 +389,15 @@ namespace SLAM {
         DifferenceFunction m_difference = nullptr;
         
         ////function
-        void check(const char* str) const {
-            if(!(m_H && m_dH_dXv && m_difference)) {
-                throw std::runtime_error(str);
-            }
-        }
+        void check(const char* str) const;
     };
     
     /**
      * @brief simple struct that contains a perception and the associated covariance.
      */
     struct ProprioceptiveObservation {
-        ProprioceptiveObservation() {}
-        ProprioceptiveObservation(const VectorType& z, const MatrixType& pz, const ProprioceptiveModel& pm) : Z(z), Pz(pz), PM(pm)
-            {} 
+        ProprioceptiveObservation();
+        ProprioceptiveObservation(const VectorType& z, const MatrixType& pz, const ProprioceptiveModel& pm);
         
         //the raw perception
         VectorType Z;
