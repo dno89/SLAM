@@ -24,11 +24,9 @@ using namespace SLAM;
 using namespace std;
 using namespace Eigen;
 
-////DEBUG
+#ifdef  EKFSLAM_ENABLE_TEST
 ofstream dl_update("/tmp/Xupdate.dat");
 ofstream dl_uncertainty("/tmp/Xuncertainty.dat");
-
-#ifdef  EKFSLAM_ENABLE_TEST
 static unsigned int iteration_count = 0;
 #endif  //EKFSLAM_ENABLE_TEST
 
@@ -199,10 +197,10 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
         }
     }
     
-#ifndef NDEBUG
-    MatrixType dense_dH_dX = dH_dX;
-    DTRACE_L(dense_dH_dX)
-#endif
+// #ifndef NDEBUG
+//     MatrixType dense_dH_dX = dH_dX;
+//     DTRACE_L(dense_dH_dX)
+// #endif
     
     //the total P matrix
     MatrixType P(m_XvSize+eta, m_XvSize+eta);
@@ -229,11 +227,12 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
 //     DTRACE_L(dX)
     
     ///DEBUG
+#ifdef EKFSLAM_ENABLE_TEST
     for(int ii = 0; ii < dX.rows(); ++ii) {
         dl_update << abs(dX[ii]) << " ";
     }
     dl_update << endl;
-    
+#endif
     //update the vehicle state
     DTRACE_L(m_Xv)
     m_Xv += dX.head(m_XvSize);
@@ -250,11 +249,12 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     P = P - W * S * W.transpose();
     
     ///DEBUG
+#ifdef EKFSLAM_ENABLE_TEST
     for(int ii = 0; ii < P.cols(); ++ii) {
         dl_uncertainty << sqrt(P(ii, ii)) << " ";
     }
     dl_uncertainty << endl;
-    
+#endif    
 //     DTRACE_L(P)
     
     //propagates the update to the 3 components
@@ -326,7 +326,7 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
         }
     }
     
-    DTRACE_L(R)
+//     DTRACE_L(R)
     
     //update with the given observations
     if(!ap.empty() || !proprioceptive_observations.empty()) {

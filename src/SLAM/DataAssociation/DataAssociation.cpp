@@ -402,15 +402,15 @@ vector< LandmarkAssociation > SLAM::Association::HungarianDataAssociation ( cons
                 }
             }
             
-#ifndef NDEBUG
-            DPRINT("The final cost matrix:")
-            for(int kk = 0; kk < rows; ++kk) {
-                for(int hh = 0; hh < cols; ++hh) {
-                    DLOG() << cost_matrix[kk][hh] << " ";
-                }
-                DLOG() << endl;
-            }
-#endif
+// #ifndef NDEBUG
+//             DPRINT("The final cost matrix:")
+//             for(int kk = 0; kk < rows; ++kk) {
+//                 for(int hh = 0; hh < cols; ++hh) {
+//                     DLOG() << cost_matrix[kk][hh] << " ";
+//                 }
+//                 DLOG() << endl;
+//             }
+// #endif
                         
             //associate using the hungarian method
             hungarian_problem_t h;
