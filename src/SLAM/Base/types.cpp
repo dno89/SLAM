@@ -36,7 +36,7 @@ MatrixType VehicleModel::dF_dXv(const VectorType& Xv, const VectorType& U) const
 }
 
 
-LandmarkPerceptionModel::LandmarkPerceptionModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DifferenceFunction difference, DistanceFunction distance, SortFunction sort, NormalizeFunction normalize) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm), m_difference(difference), m_distance(distance), m_sort(sort), m_normalize(normalize) {
+LandmarkPerceptionModel::LandmarkPerceptionModel( LandmarkPerceptionModel::ObservationFunction h, LandmarkPerceptionModel::ObservationJacobian dh_dxv, LandmarkPerceptionModel::ObservationJacobian dh_dxm, LandmarkPerceptionModel::DifferenceFunction difference, LandmarkPerceptionModel::DistanceFunction distance, ScalarType distanceThreshold, LandmarkPerceptionModel::SortFunction sort, LandmarkPerceptionModel::NormalizeFunction normalize ) : m_H(h), m_dH_dXv(dh_dxv), m_dH_dXm(dh_dxm), m_difference(difference), m_distance(distance), AssociationDistanceThreshold(distanceThreshold), m_sort(sort), m_normalize(normalize) {
 	check("LandmarkModel::LandmarkModel(ObservationFunction,ObservationJacobian,ObservationJacobian) ERROR: h, dh_dxv and df_dxm must be non-NULL!\n");
 }
 LandmarkPerceptionModel::LandmarkPerceptionModel() {}

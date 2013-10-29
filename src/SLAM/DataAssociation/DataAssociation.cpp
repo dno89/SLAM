@@ -29,7 +29,7 @@ using namespace std;
 IMPORT_DEBUG_LOG()
 
 ////GREEDY DATA ASSOCIATION
-ScalarType SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+// ScalarType SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
 vector<LandmarkAssociation> SLAM::Association::GreedyDataAssociation(const vector<Observation>& observations, const EKFSLAMEngine& se) {
     DOPEN_CONTEXT("GreedyDataAssociation")
     
@@ -108,7 +108,7 @@ vector<LandmarkAssociation> SLAM::Association::GreedyDataAssociation(const vecto
                     //check every landmark
                     ScalarType distance = lm.Distance(observation_groups[lm][ii].first, landmark_groups[lm][jj].first);
                     
-                    if(distance < SequentialDataAssociationParams::DistanceThreshold && distance < min_distance) {
+                    if(distance < lm.AssociationDistanceThreshold && distance < min_distance) {
                         min_distance = distance;
                         min_index = jj;
                     }
@@ -157,7 +157,7 @@ vector<LandmarkAssociation> SLAM::Association::GreedyDataAssociation(const vecto
 
 ////SEQUENTIAL DATA ASSOCIATION
 ///TODO: FIXME BUG: a volta l'associazione è palesemente sbagliata, pur avendo il giusto ordine
-ScalarType SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
+// ScalarType SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
 vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const vector<Observation>& observations, const EKFSLAMEngine& se) {
 	DOPEN_CONTEXT("SequentialDataAssociation")
     
@@ -293,7 +293,7 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
 				DPRINT(ip.first << " - " << ip.second)
 				
 				//distance threshold
-				if(lm.Distance(observations_Z[tmp_ob_index], landmarks_Z[tmp_lm_index]) < SequentialDataAssociationParams::DistanceThreshold) {
+				if(lm.Distance(observations_Z[tmp_ob_index], landmarks_Z[tmp_lm_index]) < lm.AssociationDistanceThreshold) {
 					//accept this association
 					int real_lm_index = landmark_groups[lm][tmp_lm_index].second;
 					sub_ret[tmp_ob_index].LandmarkIndex = real_lm_index;
@@ -326,7 +326,7 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
     return ret;
 }
 
-ScalarType SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 1.0;
+// ScalarType SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 1.0;
 ScalarType SLAM::Association::HungarianDataAssociationParams::ToIntFactor = 1000.0;
 vector< LandmarkAssociation > SLAM::Association::HungarianDataAssociation ( const vector< Observation >& observations, const EKFSLAMEngine& se) {
     DOPEN_CONTEXT("HungarianDataAssociation")
@@ -442,7 +442,7 @@ vector< LandmarkAssociation > SLAM::Association::HungarianDataAssociation ( cons
                 DPRINT(ip.first << " - " << ip.second)
                 
                 //distance threshold
-                if(lm.Distance(observation_groups[lm][tmp_ob_index].first, landmark_groups[lm][tmp_lm_index].first) < HungarianDataAssociationParams::DistanceThreshold) {
+                if(lm.Distance(observation_groups[lm][tmp_ob_index].first, landmark_groups[lm][tmp_lm_index].first) < lm.AssociationDistanceThreshold) {
                     //accept this association
                     int real_lm_index = landmark_groups[lm][tmp_lm_index].second;
                     sub_ret[tmp_ob_index].LandmarkIndex = real_lm_index;

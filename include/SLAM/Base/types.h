@@ -94,7 +94,7 @@ namespace SLAM {
          * @p dh_dxm the Jacobian of @p h computed wrt the landmark state Xm
          * @p distance a function that, given 2 perceptions returns a vector representing the distance, component by component, between the two.
          */
-        LandmarkPerceptionModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DifferenceFunction difference = Models::DefaultDifference, DistanceFunction distance = Models::DefaultDistance, SortFunction sort = Models::DefaultSort, NormalizeFunction normalize = Models::DefaultNormalize);
+        LandmarkPerceptionModel(ObservationFunction h, ObservationJacobian dh_dxv, ObservationJacobian dh_dxm, DifferenceFunction difference = Models::DefaultDifference, DistanceFunction distance = Models::DefaultDistance, ScalarType distanceThreshold = 2.0, SortFunction sort = Models::DefaultSort, NormalizeFunction normalize = Models::DefaultNormalize);
         /**
          * @brief empty constructor
          */
@@ -132,6 +132,11 @@ namespace SLAM {
         ScalarType Distance(const ObservationType& v1, const ObservationType& v2) const;
         bool Sort(const ObservationType& v1, const ObservationType& v2) const;
         VectorType Normalize(const ObservationType& v) const;
+        
+        /**
+         * The maximum distance for which the association is successful
+         */
+        mutable ScalarType AssociationDistanceThreshold;
         
     private:
         ////data

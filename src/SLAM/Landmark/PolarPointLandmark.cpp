@@ -136,4 +136,4 @@ VectorType SLAM::Models::PolarPointLandmark::Normalize(const VectorType& z) {
     return res;
 }
 
-const LandmarkModel SLAM::Models::PolarPointLandmarkModel(LandmarkPerceptionModel(PolarPointLandmark::H, PolarPointLandmark::dH_dXv, PolarPointLandmark::dH_dXm, PolarPointLandmark::Difference, PolarPointLandmark::Distance, PolarPointLandmark::Sort, PolarPointLandmark::Normalize), LandmarkInitializationModel(PolarPointLandmark::G, PolarPointLandmark::dG_dXv, PolarPointLandmark::dG_dZ));
+const LandmarkModel SLAM::Models::PolarPointLandmarkModel(LandmarkPerceptionModel(PolarPointLandmark::H, PolarPointLandmark::dH_dXv, PolarPointLandmark::dH_dXm, PolarPointLandmark::Difference, PolarPointLandmark::Distance, 0.5, PolarPointLandmark::Sort, PolarPointLandmark::Normalize), LandmarkInitializationModel(PolarPointLandmark::G, PolarPointLandmark::dG_dXv, PolarPointLandmark::dG_dZ));

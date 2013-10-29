@@ -85,4 +85,4 @@ bool Models::CartesianPointLandmark::Sort ( const SLAM::VectorType& z1, const SL
     throw std::runtime_error("CarterianPointLandmark::Sort ERROR: no consistent sort defined!");
 }
 
-const LandmarkModel SLAM::Models::CartesianPointLandmarkModel(LandmarkPerceptionModel(CartesianPointLandmark::H, CartesianPointLandmark::dH_dXv, CartesianPointLandmark::dH_dXm, DefaultDifference, DefaultDistance, CartesianPointLandmark::Sort, DefaultNormalize), LandmarkInitializationModel(CartesianPointLandmark::G, CartesianPointLandmark::dG_dXv, CartesianPointLandmark::dG_dZ));
+const LandmarkModel SLAM::Models::CartesianPointLandmarkModel(LandmarkPerceptionModel(CartesianPointLandmark::H, CartesianPointLandmark::dH_dXv, CartesianPointLandmark::dH_dXm, DefaultDifference, DefaultDistance, 0.5, CartesianPointLandmark::Sort, DefaultNormalize), LandmarkInitializationModel(CartesianPointLandmark::G, CartesianPointLandmark::dG_dXv, CartesianPointLandmark::dG_dZ));

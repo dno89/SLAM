@@ -878,9 +878,9 @@ namespace engine_test {
     int full_slam_engine_test(int argc, char **argv) {
 //         const double observation_alpha_sigma = 0.004;
         
-        SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
-		SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+// 		SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
 		
         //real vehicle position
         VectorType Xv(3);
@@ -1057,9 +1057,9 @@ namespace engine_test {
     int full_slam_engine_test_odometry(int argc, char **argv) {
 //         const double observation_alpha_sigma = 0.004;
         
-        SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
         
         //real vehicle position
         VectorType Xv(3);
@@ -1247,9 +1247,9 @@ namespace engine_test {
     int full_slam_engine_test_cartesian(int argc, char **argv) {
         const double observation_alpha_sigma = 0.004;
         
-        SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
         
         //real vehicle position
         VectorType Xv(3);
@@ -1438,9 +1438,9 @@ namespace engine_test {
     int full_slam_engine_test_mixed(int argc, char **argv) {
         const double observation_alpha_sigma = 0.004;
         
-        SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
         
         //real vehicle position
         VectorType Xv(3);
@@ -1649,9 +1649,9 @@ namespace engine_test {
      */
     int full_slam_engine_test_lines(int argc, char **argv) {
         
-        SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
-        SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::GreedyDataAssociationParams::DistanceThreshold = 2.0;
+//         SLAM::Association::HungarianDataAssociationParams::DistanceThreshold = 2.0;
         
         //real vehicle position
         VectorType Xv(3);

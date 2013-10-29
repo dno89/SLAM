@@ -240,9 +240,9 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     
     //update the landmark state
     for(int ii = 0; ii < m_landmarks.size(); ++ii) {
-//         DPRINT("landmark " << ii << ": " << m_landmarks[ii].Xm.transpose())
+        DPRINT("landmark " << ii << ": " << m_landmarks[ii].Xm.transpose())
         m_landmarks[ii].Xm += dX.segment(m_landmarks[ii].AccumulatedSize+m_XvSize, m_landmarks[ii].Xm.rows());
-//         DPRINT("after update: " << m_landmarks[ii].Xm.transpose())
+        DPRINT("after update: " << m_landmarks[ii].Xm.transpose())
     }
     
     //update the total covariance matrix
