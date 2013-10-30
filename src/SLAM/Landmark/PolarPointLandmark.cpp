@@ -115,6 +115,7 @@ ScalarType SLAM::Models::PolarPointLandmark::Distance(const VectorType& z1, cons
     VectorType diff(SLAM::Models::PolarPointLandmark::Difference(z1, z2));
 //     DPRINT("PPL Distance: " << sqrt(diff(0)*diff(0) + diff(1)*diff(1)))
     return sqrt(diff(0)*diff(0) + 10*diff(1)*diff(1));
+//     return sqrt(diff(0)*diff(0) + M_PI*diff(1)*diff(1));
     
     ///FIXME: this distance yields worse performances.. WHY??
 //     const ScalarType dx = z1[0]*cos(z1[1]) - z2[0]*cos(z2[1]), dy = z1[0]*sin(z1[1]) - z2[0]*sin(z2[1]);

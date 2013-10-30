@@ -112,7 +112,7 @@ void EKFSLAMEngine::Predict(const VectorType& u, const MatrixType& Q) {
 }
 
 void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptive_observations, std::vector<AssociatedPerception>& perceptions, const MatrixType& R) {
-    DOPEN_CONTEXT("Update")
+    DOPEN_CONTEXT("PreassociatedUpdate")
 #ifndef NDEBUG
     auto t_start = chrono::high_resolution_clock::now();
 #endif  //NDEBUG
@@ -271,7 +271,7 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     DINFO("Preassociated Update took " << chrono::duration_cast<chrono::microseconds>(dt).count() << " us.")
 #endif  //NDEBUG
     
-    DCLOSE_CONTEXT("Update")
+    DCLOSE_CONTEXT("PreassociatedUpdate")
 }
 
 void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptive_observations, const std::vector<Observation>& observations, AssociationFunction AF) {
