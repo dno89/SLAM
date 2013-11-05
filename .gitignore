@@ -4,3 +4,5 @@ build/
 .kdev*
 *kdev
 logs/
+doxydocs/
+doxycfg
