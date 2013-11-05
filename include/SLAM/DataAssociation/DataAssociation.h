@@ -34,7 +34,6 @@ namespace SLAM {
     namespace SequentialDataAssociationParams {
 //         extern ScalarType DistanceThreshold;
     }
-    ///FIXME: BUGGED
 	std::vector<LandmarkAssociation> SequentialDataAssociation(const std::vector<Observation>&, const EKFSLAMEngine&);
 	
     namespace HungarianDataAssociationParams {
