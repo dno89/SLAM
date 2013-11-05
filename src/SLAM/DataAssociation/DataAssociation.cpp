@@ -156,9 +156,10 @@ vector<LandmarkAssociation> SLAM::Association::GreedyDataAssociation(const vecto
 }
 
 ////SEQUENTIAL DATA ASSOCIATION
-///TODO: FIXME BUG: a volta l'associazione è palesemente sbagliata, pur avendo il giusto ordine
 // ScalarType SLAM::Association::SequentialDataAssociationParams::DistanceThreshold = 2.0;
 vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const vector<Observation>& observations, const EKFSLAMEngine& se) {
+    throw std::runtime_error("SequentialDataAssociation ERROR: this function is not properly working. Fix it or use HungarianDataAssociation instead.");
+    
 	DOPEN_CONTEXT("SequentialDataAssociation")
     
     if(observations.empty()) {

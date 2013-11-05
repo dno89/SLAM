@@ -5,6 +5,8 @@
  */
 
 ////include
+//std
+#include <stdexcept>
 //SLAM
 #include <SLAM/Base/core.h>
 
@@ -19,7 +21,8 @@ ScalarType DefaultDistance(const VectorType& v1, const VectorType& v2)  {
 }
 
 bool DefaultSort ( const VectorType& v1, const VectorType& v2 ) {
-    return v1[0] < v2[0];
+    throw std::runtime_error("ERROR DefaultSort is only a placeholder.. how can I know how to sort your stuff??");
+//     return v1[0] < v2[0];
 }
 
 VectorType DefaultNormalize( const VectorType& v ) {

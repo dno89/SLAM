@@ -372,15 +372,15 @@ namespace engine_test {
     static default_random_engine eng_ob(/*time(NULL)*/1);
     static const double mu = 0.0;
 
-    static const double state_pos_sigma = 0.02;
-    static const double state_ang_sigma = 0.008;
-	static const double observation_rho_sigma = 0.01;
-    static const double observation_alpha_sigma = 0.008;
+//     static const double state_pos_sigma = 0.02;
+//     static const double state_ang_sigma = 0.008;
+// 	static const double observation_rho_sigma = 0.01;
+//     static const double observation_alpha_sigma = 0.008;
     
-//     static const double state_pos_sigma = 0.01;
-//     static const double state_ang_sigma = 0.001;
-//     static const double observation_rho_sigma = 0.01;
-//     static const double observation_alpha_sigma = 0.004;
+    static const double state_pos_sigma = 0.01;
+    static const double state_ang_sigma = 0.001;
+    static const double observation_rho_sigma = 0.01;
+    static const double observation_alpha_sigma = 0.004;
         
     static normal_distribution<double> state_pos_noise(mu, state_pos_sigma);
     static normal_distribution<double> state_ang_noise(mu, state_ang_sigma);
