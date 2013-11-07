@@ -4,7 +4,8 @@ project(slam)
 
 add_definitions(-std=c++0x)
 
-include_directories(/usr/include/eigen3/)
+find_package(Eigen)
+include_directories(${EIGEN_INCLUDE_DIR})
 include_directories(include/)
 
 # add_subdirectory(SLAM)
