@@ -52,6 +52,11 @@ void EKFSLAMEngine::Setup(const VectorType& initial_state_estimation, const Matr
         assert(vehicle_model);
         m_vModel = vehicle_model;
         
+        //reset the previous state
+        m_Pvm = MatrixType();
+        m_Pmm = MatrixType();
+        m_landmarks.clear();
+        
         DCLOSE_CONTEXT("Setup")
         
         m_init = true;
@@ -275,6 +280,8 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
 }
 
 void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptive_observations, const std::vector<Observation>& observations, AssociationFunction AF) {
+    check();
+    
     DOPEN_CONTEXT("Update")
 #ifndef NDEBUG
     auto t_start = chrono::high_resolution_clock::now();
@@ -429,6 +436,7 @@ int EKFSLAMEngine::AddNewLandmark(const VectorType& raw_observation, const Landm
 }
 
 int EKFSLAMEngine::AddNewLandmark ( const SLAM::VectorType& raw_observation, const LandmarkModel& landmark_model, const MatrixType& R ) {
+    check();
     AddNewLandmark(raw_observation, landmark_model.LPM, landmark_model.LIM, R);
 }
 
@@ -455,4 +463,8 @@ inline int EKFSLAMEngine::preprocess_proprioceptive_perceptions(std::vector<Prop
     }
     
     return accum;
+}
+
+void EKFSLAMEngine::Reset() {
+    m_init = false;
 }

@@ -116,6 +116,15 @@ namespace SLAM {
         const std::vector<Landmark>& GetLandmarks() const {
 			return m_landmarks;
 		}
+		
+		/**
+         * @brief reset the engine state
+         * 
+         * This function erase the current model, state and covariance estimations.
+         * A new @fn Setup
+         * call is required to use the object again.
+         */
+        void Reset();
         
         
     private:
