@@ -234,7 +234,7 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     ///DEBUG
 #ifdef EKFSLAM_ENABLE_TEST
     for(int ii = 0; ii < dX.rows(); ++ii) {
-        dl_update << abs(dX[ii]) << " ";
+        dl_update << dX[ii] << " ";
     }
     dl_update << endl;
 #endif
@@ -289,6 +289,22 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     
     if(observations.empty() && proprioceptive_observations.empty()) {
         DWARNING("Empty exteroceptive and proprioceptive observations")
+        
+#ifdef EKFSLAM_ENABLE_TEST
+        for(int ii = 0; ii < 1000; ++ii) {
+            dl_update << 0 << " ";
+        }
+        dl_update << endl;
+
+        for(int ii = 0; ii < m_XvSize; ++ii) {
+            dl_uncertainty << sqrt(m_Pvv(ii, ii)) << " ";
+        }
+        for(int ii = 0; ii < m_Pmm.cols(); ++ii) {
+            dl_uncertainty << sqrt(m_Pmm(ii, ii)) << " ";
+        }
+        dl_uncertainty << endl;
+#endif
+        
         DCLOSE_CONTEXT("Update")
         
         return;
