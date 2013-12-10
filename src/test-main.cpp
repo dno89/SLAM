@@ -478,7 +478,7 @@ namespace engine_test {
         return res;
     }
     
-    static const int LANDMARK_NUMBER = 60;
+    static const int LANDMARK_NUMBER = 1000;
     static const double SENSOR_RANGE_MAX = 70;
     static const double SENSOR_RANGE_MIN = 0.05;
     static const double SENSOR_ANGLE_MAX = M_PI/2.0;
@@ -875,6 +875,8 @@ namespace engine_test {
     /**
      * Test with association and polar point features
      */
+    
+    std::ofstream landmark_performance("/tmp/lm_p.dat");
     int full_slam_engine_test(int argc, char **argv) {
 //         const double observation_alpha_sigma = 0.004;
         
@@ -989,7 +991,12 @@ namespace engine_test {
             cout << "--< prediction >--\nU: " << U.transpose() << endl;
             //real state update
             Xv = noisy_F(Xv, U);
+            auto t1 = chrono::high_resolution_clock::now();
             se.Predict(U, Q);
+            chrono::high_resolution_clock::duration ddt = chrono::high_resolution_clock::now() - t1;
+            int us_count = chrono::microseconds(ddt).count();
+            cerr << "Predict: " << chrono::microseconds(ddt).count() << "us" << endl;
+            
             cout << "Real Xv: " << Xv.transpose() << endl;
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
             
@@ -1013,7 +1020,14 @@ namespace engine_test {
 //                 se.Update(percs, MatrixXd::Identity(percs.size()*2.0, percs.size()*2.0)*observation_sigma*observation_sigma);
 //             }
             std::vector<ProprioceptiveObservation> pp;
+            t1 = chrono::high_resolution_clock::now();
             se.Update(pp, observations, Association::HungarianDataAssociation);
+            ddt = chrono::high_resolution_clock::now() - t_start;
+            cerr << "Update: " << chrono::microseconds(ddt).count() << "us" << endl;
+            us_count += chrono::microseconds(ddt).count();
+            
+            landmark_performance << se.GetTrackedLandmarksSize() << " " << us_count << endl;
+            
             
             for(int jj = 0; jj < se.GetTrackedLandmarksSize(); ++jj) {
                 tracked_Xm << se.GetLandmarkEstimation(jj).transpose() << " ";
