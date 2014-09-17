@@ -994,8 +994,8 @@ namespace engine_test {
             auto t1 = chrono::high_resolution_clock::now();
             se.Predict(U, Q);
             chrono::high_resolution_clock::duration ddt = chrono::high_resolution_clock::now() - t1;
-            int us_count = chrono::microseconds(ddt).count();
-            cerr << "Predict: " << chrono::microseconds(ddt).count() << "us" << endl;
+            int us_count = chrono::duration_cast<microseconds>(ddt).count();
+            cerr << "Predict: " << chrono::duration_cast<microseconds>(ddt).count() << "us" << endl;
             
             cout << "Real Xv: " << Xv.transpose() << endl;
             cout << "Estimated Xv: " << se.GetStateEstimation().transpose() << endl;
@@ -1023,8 +1023,8 @@ namespace engine_test {
             t1 = chrono::high_resolution_clock::now();
             se.Update(pp, observations, Association::HungarianDataAssociation);
             ddt = chrono::high_resolution_clock::now() - t_start;
-            cerr << "Update: " << chrono::microseconds(ddt).count() << "us" << endl;
-            us_count += chrono::microseconds(ddt).count();
+            cerr << "Update: " << chrono::duration_cast<microseconds>(ddt).count() << "us" << endl;
+            us_count += chrono::duration_cast<microseconds>(ddt).count();
             
             landmark_performance << se.GetTrackedLandmarksSize() << " " << us_count << endl;
             
