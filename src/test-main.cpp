@@ -478,7 +478,7 @@ namespace engine_test {
         return res;
     }
     
-    static const int LANDMARK_NUMBER = 1000;
+    static const int LANDMARK_NUMBER = 100;
     static const double SENSOR_RANGE_MAX = 70;
     static const double SENSOR_RANGE_MIN = 0.05;
     static const double SENSOR_ANGLE_MAX = M_PI/2.0;
@@ -978,7 +978,7 @@ namespace engine_test {
         out_script << script.str() << flush;
         out_script.close();
         
-        const int TOTAL_TICK = 1e4;
+        const int TOTAL_TICK = 1e3;
         for(int ii = 0; ii < TOTAL_TICK; ++ii) {
             auto t_start = high_resolution_clock::now();
             
@@ -1562,7 +1562,7 @@ namespace engine_test {
         out_script << script.str() << flush;
         out_script.close();
         
-        const int TOTAL_TICK = 1e4;
+        const int TOTAL_TICK = 1e3;
         for(int ii = 0; ii < TOTAL_TICK; ++ii) {
             auto t_start = high_resolution_clock::now();
             
