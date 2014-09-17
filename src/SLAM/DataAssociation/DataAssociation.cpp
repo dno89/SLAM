@@ -60,7 +60,7 @@ vector<LandmarkAssociation> SLAM::Association::GreedyDataAssociation(const vecto
     for(int ii = 0; ii < lms.size(); ++ii) {
         //add the perception associated to this element
         //note Model is a RestrainedModel
-        landmark_groups[lms[ii].Model].push_back(make_pair(lms[ii].Model.Normalize(lms[ii].Model.H(se.GetStateEstimation())), ii));
+        landmark_groups[lms[ii].Model].push_back(make_pair(lms[ii].Model.Normalize(lms[ii].Model.H(se.GetStateEstimation(), lms[ii].Xm)), ii));
     }
     
     //now iterate over each observation group
@@ -193,9 +193,9 @@ vector<LandmarkAssociation> SLAM::Association::SequentialDataAssociation(const v
 	for(int ii = 0; ii < lms.size(); ++ii) {
 		//add the perception associated to this element
 		//note Model is a RestrainedModel
-        DPRINT("Raw landmark: " << lms[ii].Model.H(se.GetStateEstimation()).transpose())
-        DPRINT("Normalized landmark: " << lms[ii].Model.Normalize(lms[ii].Model.H(se.GetStateEstimation())).transpose())
-        landmark_groups[lms[ii].Model].push_back(make_pair(lms[ii].Model.Normalize(lms[ii].Model.H(se.GetStateEstimation())), ii));
+        DPRINT("Raw landmark: " << lms[ii].Model.H(se.GetStateEstimation(), lms[ii].Xm).transpose())
+        DPRINT("Normalized landmark: " << lms[ii].Model.Normalize(lms[ii].Model.H(se.GetStateEstimation(), lms[ii].Xm)).transpose())
+        landmark_groups[lms[ii].Model].push_back(make_pair(lms[ii].Model.Normalize(lms[ii].Model.H(se.GetStateEstimation(), lms[ii].Xm)), ii));
 	}
 	
 	//observations group and landmarks group must be sorted (Required by sequential associator)
@@ -359,7 +359,7 @@ vector< LandmarkAssociation > SLAM::Association::HungarianDataAssociation ( cons
     for(int ii = 0; ii < lms.size(); ++ii) {
         //add the perception associated to this element
         //note Model is a RestrainedModel
-        landmark_groups[lms[ii].Model].push_back(make_pair(lms[ii].Model.Normalize(lms[ii].Model.H(se.GetStateEstimation())), ii));
+        landmark_groups[lms[ii].Model].push_back(make_pair(lms[ii].Model.Normalize(lms[ii].Model.H(se.GetStateEstimation(), lms[ii].Xm)), ii));
     }
     
     //now iterate over each observation group

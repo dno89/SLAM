@@ -121,38 +121,38 @@ LandmarkModel::LandmarkModel() {}
 LandmarkModel::LandmarkModel(const LandmarkPerceptionModel& lpm, const LandmarkInitializationModel& lim) :
 	LPM(lpm), LIM(lim) {}
 
-RestrainedLandmarkModel::RestrainedLandmarkModel(const LandmarkPerceptionModel& landmark_model, const VectorType& landmark_state) :
-	m_lm(landmark_model), m_ls(landmark_state) {}
-
-RestrainedLandmarkModel::ObservationType RestrainedLandmarkModel::H(const VehicleStateType& Xv) const {
-	return m_lm.H(Xv, m_ls);
-}
-MatrixType RestrainedLandmarkModel::dH_dXv(const VehicleStateType& Xv) const {
-	return m_lm.dH_dXv(Xv, m_ls);
-}
-MatrixType RestrainedLandmarkModel::dH_dXm(const VehicleStateType& Xv) const {
-	return m_lm.dH_dXm(Xv, m_ls);
-}
-ScalarType RestrainedLandmarkModel::Distance(const ObservationType& v1, const ObservationType& v2) const {
-	return m_lm.Distance(v1, v2);
-}
-VectorType RestrainedLandmarkModel::Difference(const ObservationType& v1, const ObservationType& v2) const {
-	return m_lm.Difference(v1, v2);
-}
-VectorType RestrainedLandmarkModel::Normalize(const ObservationType& v) const {
-	return m_lm.Normalize(v);
-}
-const LandmarkPerceptionModel& RestrainedLandmarkModel::GetModel() const {
-	return m_lm;
-}
-RestrainedLandmarkModel::operator const LandmarkPerceptionModel&() const {
-	return m_lm;
-}
+// RestrainedLandmarkModel::RestrainedLandmarkModel(const LandmarkPerceptionModel& landmark_model, const VectorType& landmark_state) :
+// 	m_lm(landmark_model), m_ls(landmark_state) {}
+// 
+// RestrainedLandmarkModel::ObservationType RestrainedLandmarkModel::H(const VehicleStateType& Xv) const {
+// 	return m_lm.H(Xv, m_ls);
+// }
+// MatrixType RestrainedLandmarkModel::dH_dXv(const VehicleStateType& Xv) const {
+// 	return m_lm.dH_dXv(Xv, m_ls);
+// }
+// MatrixType RestrainedLandmarkModel::dH_dXm(const VehicleStateType& Xv) const {
+// 	return m_lm.dH_dXm(Xv, m_ls);
+// }
+// ScalarType RestrainedLandmarkModel::Distance(const ObservationType& v1, const ObservationType& v2) const {
+// 	return m_lm.Distance(v1, v2);
+// }
+// VectorType RestrainedLandmarkModel::Difference(const ObservationType& v1, const ObservationType& v2) const {
+// 	return m_lm.Difference(v1, v2);
+// }
+// VectorType RestrainedLandmarkModel::Normalize(const ObservationType& v) const {
+// 	return m_lm.Normalize(v);
+// }
+// const LandmarkPerceptionModel& RestrainedLandmarkModel::GetModel() const {
+// 	return m_lm;
+// }
+// RestrainedLandmarkModel::operator const LandmarkPerceptionModel&() const {
+// 	return m_lm;
+// }
 
 Landmark::Landmark(const VectorType& state, const LandmarkPerceptionModel& model) :
-	AccumulatedSize(0), Xm(state), Model(model, Xm) {}
+	AccumulatedSize(0), Xm(state), Model(model) {}
 
-Landmark::Landmark(const Landmark& l) : AccumulatedSize(l.AccumulatedSize), Xm(l.Xm), Model(l.Model.GetModel(), Xm)
+Landmark::Landmark(const Landmark& l) : AccumulatedSize(l.AccumulatedSize), Xm(l.Xm), Model(l.Model)
 {}
 
 Observation::Observation() {}

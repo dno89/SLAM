@@ -148,12 +148,12 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     }
     for(int ii = 0; ii < p; ++ii) {
         DPRINT("Estimated landmark " << perceptions[ii].AssociatedIndex << " state: " << m_landmarks[perceptions[ii].AssociatedIndex].Xm.transpose())
-        DPRINT("Predicted observation : " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv).transpose())
+        DPRINT("Predicted observation : " << m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv, m_landmarks[perceptions[ii].AssociatedIndex].Xm).transpose())
         DPRINT("Actual observation : " << perceptions[ii].Z.transpose())
         
 //         std_ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = perceptions[ii].Z - (m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
         
-        ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Difference(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv));
+        ni.segment(perceptions[ii].AccumulatedSize, perceptions[ii].Z.rows()) = m_landmarks[perceptions[ii].AssociatedIndex].Model.Difference(perceptions[ii].Z, m_landmarks[perceptions[ii].AssociatedIndex].Model.H(m_Xv, m_landmarks[perceptions[ii].AssociatedIndex].Xm));
     }
 //     DTRACE_L(std_ni)
     DTRACE_L(ni)
@@ -176,10 +176,10 @@ void EKFSLAMEngine::Update(std::vector<ProprioceptiveObservation>& proprioceptiv
     }
     for(int kk = 0; kk < p; ++kk) {
         //the jacobian wrt the vehicle state: a (Mjkk)x(Nv) matrix
-        MatrixType dH_dXv = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXv(m_Xv);
+        MatrixType dH_dXv = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXv(m_Xv, m_landmarks[perceptions[kk].AssociatedIndex].Xm);
 //         DTRACE_L(dH_dXv)
         //the jacobian wrt the landmark state: a (Mjkk)x(Njkk) matrix
-        MatrixType dH_dXm = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXm(m_Xv);
+        MatrixType dH_dXm = m_landmarks[perceptions[kk].AssociatedIndex].Model.dH_dXm(m_Xv, m_landmarks[perceptions[kk].AssociatedIndex].Xm);
 //         DTRACE_L(dH_dXm)
         
         //set it on the sparse Jacobian

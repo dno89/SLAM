@@ -232,31 +232,31 @@ namespace SLAM {
     /**
      * Just a convenient class for force the evaluation of the model on the relative landmark state.
      */
-    class RestrainedLandmarkModel {
-    private:
-        const LandmarkPerceptionModel m_lm;
-        const VectorType& m_ls;
-    public:
-        RestrainedLandmarkModel(const LandmarkPerceptionModel& landmark_model, const VectorType& landmark_state);
-        RestrainedLandmarkModel(const RestrainedLandmarkModel&) = delete;
-        RestrainedLandmarkModel& operator=(const RestrainedLandmarkModel&) = delete;
-            
-        ////typedef
-        typedef VectorType VehicleStateType;
-        typedef VectorType ObservationType;
-        
-        ////INTERFACE
-        ObservationType H(const VehicleStateType& Xv) const;
-        MatrixType dH_dXv(const VehicleStateType& Xv) const;
-        MatrixType dH_dXm(const VehicleStateType& Xv) const;
-        ScalarType Distance(const ObservationType& v1, const ObservationType& v2) const;
-        VectorType Difference(const ObservationType& v1, const ObservationType& v2) const;
-        VectorType Normalize(const ObservationType& v) const;
-        
-        const LandmarkPerceptionModel& GetModel() const;
-        
-        operator const LandmarkPerceptionModel&() const;
-    };
+//     class RestrainedLandmarkModel {
+//     private:
+//         const LandmarkPerceptionModel m_lm;
+//         const VectorType& m_ls;
+//     public:
+//         RestrainedLandmarkModel(const LandmarkPerceptionModel& landmark_model, const VectorType& landmark_state);
+//         RestrainedLandmarkModel(const RestrainedLandmarkModel&) = delete;
+//         RestrainedLandmarkModel& operator=(const RestrainedLandmarkModel&) = delete;
+//             
+//         ////typedef
+//         typedef VectorType VehicleStateType;
+//         typedef VectorType ObservationType;
+//         
+//         ////INTERFACE
+//         ObservationType H(const VehicleStateType& Xv) const;
+//         MatrixType dH_dXv(const VehicleStateType& Xv) const;
+//         MatrixType dH_dXm(const VehicleStateType& Xv) const;
+//         ScalarType Distance(const ObservationType& v1, const ObservationType& v2) const;
+//         VectorType Difference(const ObservationType& v1, const ObservationType& v2) const;
+//         VectorType Normalize(const ObservationType& v) const;
+//         
+//         const LandmarkPerceptionModel& GetModel() const;
+//         
+//         operator const LandmarkPerceptionModel&() const;
+//     };
     
     /**
      * @struct Landmark
@@ -274,7 +274,7 @@ namespace SLAM {
         //the landmark state
         VectorType Xm;
         //the landmark observation model
-        RestrainedLandmarkModel Model;
+        LandmarkPerceptionModel Model;
     };
     
     /**
